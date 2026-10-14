@@ -1,8 +1,8 @@
 {
   "id": "./",
-  "name": "EMBRACE Portal - Expanded Micro Business Recovery Assistance during Crisis and Emergency",
-  "short_name": "EMBRACE",
-  "description": "Prepare your business plan, financial statements and EMBRACE loan requirements step by step. MSME Enterprise Passport for Iloilo micro-entrepreneurs and OFWs. Works offline.",
+  "name": "NegosyoPlan - Business Plan & Financial Statement Builder",
+  "short_name": "NegosyoPlan",
+  "description": "Prepare your business plan and financial statements step by step, keep a reusable MSME Enterprise Passport and get your EMBRACE loan requirements ready. Works offline.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
@@ -18,12 +18,12 @@
     { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "screenshots": [
-    { "src": "assets/hero.jpg", "sizes": "1024x1536", "type": "image/jpeg", "form_factor": "narrow", "label": "EMBRACE Portal landing page" }
+    { "src": "assets/hero.jpg", "sizes": "1024x1536", "type": "image/jpeg", "form_factor": "narrow", "label": "NegosyoPlan landing page" }
   ],
   "shortcuts": [
     { "name": "Business Plan", "url": "./#plan/1", "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }] },
     { "name": "Financial Statements", "url": "./#finance", "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }] },
-    { "name": "EMBRACE Loan", "url": "./#loan", "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }] },
+    { "name": "My Loan", "url": "./#loan/account", "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }] },
     { "name": "Documents", "url": "./#docs", "icons": [{ "src": "icons/icon-96.png", "sizes": "96x96" }] }
   ]
 }

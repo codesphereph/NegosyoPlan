@@ -1,4 +1,4 @@
-/* EMBRACE Portal — data model, calculations, validation.
+/* NegosyoPlan — data model, calculations, validation.
    Rules from the EMBRACE Program IRR (Iloilo Provincial Government):
    - Loan PHP 20,000 – 100,000, 0% interest, 3% service fee deducted from principal
    - 6-month grace period; payable 1 year (<= 50,000) or 2 years (> 50,000), monthly
@@ -66,7 +66,7 @@
       trainings: [],
       documents: [],
       needs: [], needsOther: '',
-      consent: { share: false, at: '', ai: false, aiAt: '' },
+      consent: { share: false, at: '', voice: false, voiceAt: '' },
       aiResults: {},
       review: null,
       meta: { createdAt: new Date().toISOString(), updatedAt: '', lastRoute: '', readyAt: '', completeness: 0, missing: [], dirty: false, serverUpdatedAt: '' }
@@ -313,7 +313,7 @@
     };
     var L = [];
     L.push(c('3 copies of duly accomplished Application Form (Annex A)', annexA.pct === 100 ? (docHas(p, ['Signed Application Form (Annex A)']).length ? 'done' : 'ready') : 'missing',
-      annexA.pct === 100 ? 'The portal can print it for you. Sign all 3 copies.' : annexA.pct + '% filled in — complete your Passport.', '#docs', ['Signed Application Form (Annex A)']));
+      annexA.pct === 100 ? 'NegosyoPlan can print it for you. Sign all 3 copies.' : annexA.pct + '% filled in — complete your Passport.', '#docs', ['Signed Application Form (Annex A)']));
     L.push(c('Project Proposal / Business Plan (Annex D)', annexD.pct === 100 ? 'ready' : 'missing', annexD.pct === 100 ? 'Ready to print from Documents.' : annexD.pct + '% complete.', '#plan', ['Signed Business Plan (Annex D)']));
     if (!ofw) {
       var itr = docHas(p, ['BIR Registration / ITR', 'Signed Financial Statement']);
@@ -340,7 +340,7 @@
       !col ? 'missing' : (colDocs.length ? 'done' : 'missing'),
       !col ? 'Choose PDC or Co-maker in Loan details.' : (col === 'pdc' ? 'PDCs are given to the Secretariat. Upload a copy if available.' : (p.loan.comaker.name ? 'Co-maker: ' + p.loan.comaker.name + '. Upload proof of capacity.' : 'Enter co-maker details.')),
       '#loan', col === 'pdc' ? ['Post-Dated Checks (copy)'] : ["Co-maker's proof of financial capacity"]));
-    L.push(c('Sworn Affidavit (not availed of any government loan assistance) — if requested', docHas(p, ['Sworn Affidavit']).length ? 'done' : 'optional', 'The portal can prefill it; it must be notarized.', '#docs', ['Sworn Affidavit']));
+    L.push(c('Sworn Affidavit (not availed of any government loan assistance) — if requested', docHas(p, ['Sworn Affidavit']).length ? 'done' : 'optional', 'NegosyoPlan can prefill it; it must be notarized.', '#docs', ['Sworn Affidavit']));
     var okLoan = pc.loan.valid;
     L.push(c('Loan amount (PHP 20,000 – 100,000) and purpose recorded', okLoan && p.loan.purposes.length ? 'done' : 'missing', okLoan ? peso(pc.loan.amount) + ' for ' + (p.loan.purposes.join(', ') || '—') : 'Enter a loan amount between PHP 20,000 and 100,000.', '#loan'));
     return L;

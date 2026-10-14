@@ -1,4 +1,4 @@
-/* EMBRACE Portal — OLEDIPO staff workspace: review submitted passports, verify records, update application status. Online only. */
+/* NegosyoPlan — OLEDIPO staff workspace: review submitted passports, verify records, update application status. Online only. */
 (function (G) {
   'use strict';
   const C = G.GrowCalc, API = G.GrowAPI;
@@ -14,18 +14,19 @@
   function render() {
     const main = $('#main'); if (!main) return;
     if (!API.configured()) {
-      main.innerHTML = `<div class="form-card"><h1>OLEDIPO Staff Workspace</h1><p>The online server is not configured for this copy of the EMBRACE Portal. Set <code>API_URL</code> in <code>js/config.js</code>, or open GROW from the Apps Script web app URL.</p></div>`;
+      main.innerHTML = `<div class="form-card"><h1>OLEDIPO Staff Workspace</h1><p>The online server is not configured for this copy of NegosyoPlan. Set <code>API_URL</code> in <code>js/config.js</code>.</p></div>`;
       return;
     }
     if (!tokenGet()) return loginView(main);
     if (st().current) return detailView(main);
     if (st().tab === 'orders') return ordersView(main);
+    if (st().tab === 'merchants') return merchantsView(main);
     if (st().tab === 'loans') return st().loan ? loanDetail(main) : loansView(main);
     listView(main);
   }
 
   function loginView(main) {
-    main.innerHTML = `<div class="gate-card admin-login"><h1>${ic('users')} OLEDIPO Staff Workspace</h1><p class="muted">Review EMBRACE applications submitted through the portal.</p>
+    main.innerHTML = `<div class="gate-card admin-login"><h1>${ic('users')} OLEDIPO Staff Workspace</h1><p class="muted">Review EMBRACE applications submitted through NegosyoPlan.</p>
       <div class="fld"><label for="adName">Your name</label><input id="adName" autocomplete="name"></div>
       <div class="fld"><label for="adKey">Admin key</label><input id="adKey" type="password" autocomplete="current-password"></div>
       <div class="btns"><button class="btn big" data-act="adLogin">Sign in</button></div><p id="adErr" class="err" role="alert"></p>
@@ -46,7 +47,7 @@
     const counts = {}; L.forEach((x) => { counts[x.status || 'Draft'] = (counts[x.status || 'Draft'] || 0) + 1; });
     const rows = L.filter((x) => (!sf || x.status === sf) && (!f || [x.passportId, x.name, x.business, x.contact].join(' ').toLowerCase().indexOf(f) >= 0))
       .sort((a, b) => String(b.submittedAt || b.updatedAt).localeCompare(String(a.submittedAt || a.updatedAt)));
-    main.innerHTML = tabsBar('apps') + `<div class="page-head"><div><h1>EMBRACE Applications</h1><p class="muted">${L.length} passports · ${L.filter((x) => x.consent).length} shared with OLEDIPO</p></div>
+    main.innerHTML = tabsBar('apps') + `<div class="page-head"><div><h1>NegosyoPlan Applications</h1><p class="muted">${L.length} passports · ${L.filter((x) => x.consent).length} shared with OLEDIPO</p></div>
       <div class="btns"><button class="btn ghost" data-act="adRefresh">Refresh</button><button class="btn ghost" data-act="adExport">${ic('down')} CSV</button>${st().sheetUrl ? `<a class="btn ghost" href="${esc(st().sheetUrl)}" target="_blank" rel="noopener">Open Google Sheet</a>` : ''}<button class="btn ghost" data-act="adLogout">Sign out</button></div></div>
       <div class="stats">${(st().statuses || []).map((s) => `<button class="stat ${sf === s ? 'hl' : ''}" data-act="adStatus" data-s="${esc(s)}"><span>${esc(s)}</span><b>${counts[s] || 0}</b></button>`).join('')}</div>
       <div class="row"><div class="fld w3"><label for="adSearch">Search</label><input id="adSearch" value="${esc(st().filter || '')}" placeholder="Name, business, Passport ID, mobile"></div>
@@ -81,7 +82,7 @@
         <h3>Verification</h3><p class="muted small">Mark records you have checked against originals. Unchecked records remain "self-reported".</p>
         ${vbox('fs', 'Financial statements verified')}${vbox('plan', 'Business plan reviewed')}${vbox('eligibility', 'Eligibility confirmed (interview)')}
         <h3>Documents ${d.documentsFolderUrl ? `<a class="btn sm ghost" href="${esc(d.documentsFolderUrl)}" target="_blank" rel="noopener">Open Drive folder</a>` : ''}</h3>
-        ${p.documents.map((x) => vbox(x.id, x.category + ' — ' + x.name + (x.driveId ? '' : ' (not uploaded)')) + (x.ai ? `<p class="small ai-line">AI pre-check: <b>${esc(x.ai.status)}</b> · ${Number(x.ai.score) || 0}% — ${esc(x.ai.summary || '')}${(x.ai.missing || []).length ? '<br>Missing: ' + x.ai.missing.map(esc).join('; ') : ''}</p>` : '')).join('') || '<p class="muted">No documents.</p>'}
+        ${p.documents.map((x) => vbox(x.id, x.category + ' — ' + x.name + (x.driveId ? '' : ' (not uploaded)'))).join('') || '<p class="muted">No documents.</p>'}
         <h3>Trainings</h3>${p.trainings.map((x) => vbox(x.id, (x.title || '') + ' — ' + (x.provider || '') + (x.date ? ' (' + x.date + ')' : ''))).join('') || '<p class="muted">None recorded.</p>'}
         <div class="fld"><label for="adNote">Internal note (optional)</label><input id="adNote"></div>
         ${(d.review.notes || []).length ? `<ul class="small">${d.review.notes.map((nn) => `<li><b>${esc(nn.by)}</b> ${new Date(nn.at).toLocaleString()}: ${esc(nn.text)}</li>`).join('')}</ul>` : ''}
@@ -90,7 +91,7 @@
   }
 
   function tabsBar(cur) {
-    return `<div class="tabs" role="tablist"><button class="${cur === 'apps' ? 'on' : ''}" data-act="adTab" data-t="apps">Applications</button><button class="${cur === 'loans' ? 'on' : ''}" data-act="adTab" data-t="loans">Loans &amp; Payments</button></div>`;
+    return `<div class="tabs" role="tablist">${[['apps', 'Applications'], ['orders', 'GCash Orders (Voice to Text)'], ['loans', 'Loans &amp; Payments'], ['merchants', 'Marketplace Merchants']].map(([k, l]) => `<button class="${cur === k ? 'on' : ''}" data-act="adTab" data-t="${k}">${l}</button>`).join('')}</div>`;
   }
 
   async function ordersView(main) {
@@ -99,15 +100,29 @@
       try { const r = await API.call({ action: 'adminOrders', token: tokenGet() }); st().orders = r.orders; st().ordStatuses = r.statuses; } catch (e) { return fail(e); }
     }
     const L = st().orders, pend = L.filter((o) => o.status === 'Payment submitted').length;
-    main.innerHTML = tabsBar('orders') + `<div class="page-head"><div><h1>AI Services · GCash Orders</h1><p class="muted">${L.length} orders · <b>${pend}</b> payment(s) to verify against the OLEDIPO GCash account</p></div>
+    main.innerHTML = tabsBar('orders') + `<div class="page-head"><div><h1>GCash Orders · Voice to Text (₱700)</h1><p class="muted">${L.length} orders · <b>${pend}</b> payment(s) to verify against the OLEDIPO GCash account</p></div>
       <div class="btns"><button class="btn ghost" data-act="adOrdRefresh">Refresh</button></div></div>
       <div class="scroll"><table class="tbl admin"><tr><th>Order</th><th>Applicant</th><th>Service</th><th class="r">Amount</th><th>Method</th><th>GCash ref</th><th>Receipt</th><th>Status</th><th>Action</th></tr>
-      ${L.map((o) => `<tr><td><code>${esc(o.orderId)}</code><br><small>${o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}</small></td><td>${esc(o.name || '')}<br><small><code>${esc(o.passportId)}</code></small></td>
+      ${L.map((o) => `<tr><td><code>${esc(o.orderId)}</code><br><small>${o.createdAt ? new Date(o.createdAt).toLocaleString() : ''}</small></td><td>${esc(o.name || '')}<br><small>${esc(o.mobile || '')} · <code>${esc(o.passportId)}</code></small></td>
         <td>${esc(o.service)}${o.runs ? `<br><small>generated ${o.runs}×</small>` : ''}</td><td class="r">₱${esc(o.amount)}</td><td>${esc(o.method)}</td><td>${esc(o.gcashRef || '')}</td>
         <td>${o.receiptUrl ? `<a href="${esc(o.receiptUrl)}" target="_blank" rel="noopener">View</a>` : ''}</td><td><span class="st st-${esc(String(o.status).replace(/\s/g, ''))}">${esc(o.status)}</span>${o.verifiedBy ? `<br><small>${esc(o.verifiedBy)}</small>` : ''}</td>
         <td>${o.status === 'Payment submitted' || o.status === 'Awaiting payment' ? `<button class="btn sm" data-act="adOrdSet" data-id="${esc(o.orderId)}" data-s="Paid">Mark paid</button> <button class="btn sm ghost danger" data-act="adOrdSet" data-id="${esc(o.orderId)}" data-s="Rejected">Reject</button>` : ''}
           ${o.status === 'Paid' || o.status === 'Completed' ? `<button class="btn sm ghost" data-act="adOrdSet" data-id="${esc(o.orderId)}" data-s="Refunded">Refunded</button>` : ''}</td></tr>`).join('') || '<tr><td colspan="9" class="muted">No orders yet.</td></tr>'}</table></div>
-      <p class="muted small">Before marking <b>Paid</b>, confirm the amount and reference number in OLEDIPO's GCash transaction history. Orders paid by online checkout (PayMongo) are confirmed automatically.</p>`;
+      <p class="muted small">Before marking <b>Paid</b>, confirm the ₱700 and the reference number in OLEDIPO's GCash transaction history. Marking Paid unlocks Voice to Text on the applicant's phone. Orders paid by online checkout (PayMongo) are confirmed automatically.</p>`;
+  }
+
+  async function merchantsView(main) {
+    if (!st().merchants) {
+      main.innerHTML = tabsBar('merchants') + '<p class="muted pad">Loading…</p>';
+      try { const r = await API.call({ action: 'adminMerchants', token: tokenGet() }); st().merchants = r.merchants; } catch (e) { return fail(e); }
+    }
+    const L = st().merchants;
+    main.innerHTML = tabsBar('merchants') + `<div class="page-head"><div><h1>Marketplace Merchants</h1><p class="muted">${L.length} subscription request(s). Listed merchants are set in <code>config.js → MARKETPLACE</code>.</p></div>
+      <div class="btns"><button class="btn ghost" data-act="adMerRefresh">Refresh</button>${st().sheetUrl ? `<a class="btn ghost" href="${esc(st().sheetUrl)}" target="_blank" rel="noopener">Open Google Sheet</a>` : ''}</div></div>
+      <div class="scroll"><table class="tbl admin"><tr><th>Date</th><th>Business</th><th>Contact</th><th>Location</th><th>Services</th><th>Message</th><th>Status</th></tr>
+      ${L.map((m) => `<tr><td>${m.at ? new Date(m.at).toLocaleDateString() : ''}</td><td><b>${esc(m.business)}</b></td><td>${esc(m.contact)}<br><small>${esc(m.mobile)}${m.email ? ' · ' + esc(m.email) : ''}</small></td>
+        <td>${esc(m.location || '')}</td><td>${esc(m.services || '')}</td><td>${esc(m.message || '')}</td><td>${esc(m.status || '')}</td></tr>`).join('') || '<tr><td colspan="7" class="muted">No requests yet.</td></tr>'}</table></div>
+      <p class="muted small">Update the Status column in the <b>Merchants</b> tab of the Google Sheet after contacting each merchant.</p>`;
   }
 
   /* ---------------- Loans & payments ---------------- */
@@ -207,10 +222,11 @@
         case 'adLoansCsv': {
           const L = st().loans || [], q = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
           const cols = ['loanId', 'applicationNo', 'name', 'business', 'amount', 'paid', 'balance', 'status', 'missed', 'arrears', 'releaseDate', 'maturity', 'passportId'];
-          A().download(new Blob(['\ufeff' + [cols.join(',')].concat(L.map((x) => cols.map((c) => q(x[c])).join(','))).join('\r\n')], { type: 'text/csv' }), 'EMBRACE_loans_' + new Date().toISOString().slice(0, 10) + '.csv');
+          A().download(new Blob(['\ufeff' + [cols.join(',')].concat(L.map((x) => cols.map((c) => q(x[c])).join(','))).join('\r\n')], { type: 'text/csv' }), 'NegosyoPlan_loans_' + new Date().toISOString().slice(0, 10) + '.csv');
           break;
         }
         case 'adOrdRefresh': st().orders = null; render(); break;
+        case 'adMerRefresh': st().merchants = null; render(); break;
         case 'adOrdSet': {
           const note = b.dataset.s === 'Rejected' ? (prompt('Reason (shown to the applicant), e.g. "Reference number not found":') || '') : '';
           if (b.dataset.s !== 'Rejected' && !confirm('Set order ' + b.dataset.id + ' to "' + b.dataset.s + '"?')) break;
@@ -228,7 +244,7 @@
         case 'adExport': {
           const L = st().list || [], q = (s) => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
           const cols = ['passportId', 'applicantNo', 'name', 'business', 'district', 'contact', 'type', 'loanAmount', 'completeness', 'status', 'submittedAt', 'updatedAt'];
-          A().download(new Blob(['﻿' + [cols.join(',')].concat(L.map((x) => cols.map((c) => q(x[c])).join(','))).join('\r\n')], { type: 'text/csv' }), 'EMBRACE_applicants_' + new Date().toISOString().slice(0, 10) + '.csv');
+          A().download(new Blob(['﻿' + [cols.join(',')].concat(L.map((x) => cols.map((c) => q(x[c])).join(','))).join('\r\n')], { type: 'text/csv' }), 'NegosyoPlan_applicants_' + new Date().toISOString().slice(0, 10) + '.csv');
           break;
         }
       }

@@ -1,6 +1,7 @@
-/* EMBRACE Portal — existing members: loan status, transaction history, amortization schedule, statement of account.
-   Data comes from the Loans / Payments tabs (posted by OLEDIPO from official receipts). The last copy is kept
-   encrypted on the device so members can view it offline. */
+/* NegosyoPlan — My Loan (existing EMBRACE members): remaining balance, upcoming payment, maturity date,
+   payment history, schedule and statement of account. No online account needed: the member links the loan once
+   with the Loan ID / Application No. + check number of the loan release; a loan key is kept (encrypted) on the device.
+   Data comes from the Loans / Payments tabs (posted by OLEDIPO from official receipts). Last copy viewable offline. */
 (function (G) {
   'use strict';
   const C = G.GrowCalc, API = G.GrowAPI, Store = G.GrowStore, D = G.GrowDocs;
@@ -14,12 +15,14 @@
 
   const ST = { 'Fully Paid': 'ok', Current: 'ok', 'Grace period': 'info', 'Past due': 'warn', Default: 'bad', Restructured: 'info' };
 
+  async function keys() { return (await Store.getSecure('loanKeys').catch(() => null)) || []; }
+  async function devId() { let id = await Store.getMeta('deviceId'); if (!id) { id = 'd' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10); await Store.setMeta('deviceId', id); } return id; }
   async function load(force) {
     if (!cache) cache = await Store.getSecure('loans').catch(() => null);
-    const S = A().S;
-    if ((force || !cache || Date.now() - (cache.at || 0) > 5 * 60000) && S.session && navigator.onLine && API.configured() && !loading) {
+    const S = A().S, k = await keys();
+    if ((force || !cache || Date.now() - (cache.at || 0) > 5 * 60000) && (k.length || S.session) && navigator.onLine && API.configured() && !loading) {
       loading = true;
-      try { const r = await API.call({ action: 'myLoans', token: S.session.token }); cache = { at: Date.now(), loans: r.loans, how: r.how }; await Store.setSecure('loans', cache); }
+      try { const r = await API.call({ action: 'myLoans', loanKeys: k, token: S.session ? S.session.token : '' }); cache = { at: Date.now(), loans: r.loans, how: r.how }; await Store.setSecure('loans', cache); }
       catch (e) { if (force) A().toast(e.message, 'err'); }
       loading = false;
     }
@@ -30,6 +33,7 @@
   /* ---------- Home card ---------- */
   function homeCard() {
     if (!hasLoans()) return '';
+    const S = A().S;
     return cache.loans.filter((l) => l.status !== 'Fully Paid').slice(0, 2).map((l) => `<a class="loan-home st-${cls(l.status)}" href="#loan/account">
       ${ic('loan', 'big')}<div><b>EMBRACE loan ${esc(l.loanId)}</b><span>Balance <b>${peso(l.balance)}</b>${l.next ? ` · next due <b>${peso(l.next.amount)}</b> on ${fd(l.next.due)}` : ''}</span></div>
       <span class="lstat ${cls(l.status)}">${esc(l.status)}</span></a>`).join('');
@@ -41,14 +45,9 @@
     return `<div id="loanAcct"><p class="muted">Loading your loan account…</p></div>`;
   }
   async function after() {
-    const S = A().S, el = $('#loanAcct'); if (!el) return;
-    if (!S.session && !cache) {
-      el.innerHTML = `<div class="form-card"><h2>${ic('loan')} My EMBRACE loan</h2><p>Existing EMBRACE borrowers can see their loan balance, payments and due dates here.</p>
-        <p>First <b>create or sign in</b> to your online account.</p><a class="btn" href="#settings">${ic('cloud')} Go to Settings → Online account</a></div>`;
-      return;
-    }
+    const el = $('#loanAcct'); if (!el) return;
     render(await load(false));
-    if (S.session && navigator.onLine) { await load(true); render(cache); }
+    if (navigator.onLine && ((await keys()).length || A().S.session)) { await load(true); render(cache); }
   }
   function render(c) {
     const el = $('#loanAcct'); if (!el) return;
@@ -59,7 +58,7 @@
   }
   function linkForm(inner) {
     return `${inner ? '' : `<div class="form-card"><h2>${ic('loan')} Link your existing EMBRACE loan</h2>`}
-      <p class="help">Enter your <b>Loan ID</b> or <b>Application No.</b> and the <b>check number</b> of your loan release (on your check or voucher). Or ask the LEDIP Center to link it for you.</p>
+      <p class="help">Existing EMBRACE borrowers: see your remaining balance, next payment, maturity date and payment history. Enter your <b>Loan ID</b> or <b>Application No.</b> and the <b>check number</b> of your loan release (on your check or voucher). You only do this once on this phone. Needs internet the first time.</p>
       <div class="row"><div class="fld"><label for="lnRef">Loan ID or Application No.</label><input id="lnRef" placeholder="e.g. LN-B1-001 or 1" autocomplete="off"></div>
       <div class="fld"><label for="lnChk">Check No. of loan release</label><input id="lnChk" inputmode="numeric" placeholder="e.g. 5948954" autocomplete="off"></div></div>
       <div class="btns"><button class="btn" data-act="lnLink">${ic('check')} Link my loan</button></div><p id="lnErr" class="err" role="alert"></p>${inner ? '' : '</div>'}`;
@@ -73,7 +72,8 @@
         <div class="stat hl"><span>Outstanding balance</span><b>${peso(l.balance)}</b></div>
         <div class="stat"><span>Total paid</span><b>${peso(l.paid)}</b></div>
         <div class="stat"><span>Loan amount</span><b>${peso(l.amount)}</b></div>
-        <div class="stat ${l.next ? '' : 'okst'}"><span>${l.next ? 'Next due' : 'Next due'}</span><b>${l.next ? peso(l.next.amount) : '—'}</b><small>${l.next ? fd(l.next.due) : (l.balance > 0 ? '' : 'Fully paid')}</small></div>
+        <div class="stat ${l.next ? '' : 'okst'}"><span>Upcoming payment</span><b>${l.next ? peso(l.next.amount) : '—'}</b><small>${l.next ? 'due ' + fd(l.next.due) : (l.balance > 0 ? '' : 'Fully paid')}</small></div>
+        <div class="stat"><span>Maturity date</span><b>${fd(l.maturity)}</b><small>${l.term} months</small></div>
       </div>
       <div class="lprog" role="img" aria-label="${l.progress}% paid"><span style="width:${l.progress}%"></span></div><p class="small muted">${l.progress}% paid · ${l.term} monthly amortizations of ${peso(l.monthly)} · 0% interest</p>
       ${l.arrears > 0 ? `<div class="issues"><h3>${ic('alert')} Past due</h3><ul><li class="sev-error">Unpaid amortizations: <b>${peso(l.arrears)}</b> (${l.missed} installment${l.missed === 1 ? '' : 's'}, ${l.daysOverdue} days overdue).</li>
@@ -87,7 +87,7 @@
         ${l.penaltiesPaid ? `<tr><th>Penalties paid</th><td>${peso(l.penaltiesPaid)}</td></tr>` : ''}${l.remarks ? `<tr><th>Remarks</th><td>${esc(l.remarks)}</td></tr>` : ''}</table></div>
         <div><h3>How to pay</h3><p class="small">${esc((cache && cache.how) || '')}</p>
         <div class="btns"><button class="btn ghost" data-act="lnStatement" data-id="${esc(l.loanId)}">${ic('print')} Statement of Account</button><button class="btn ghost" data-act="lnCsv" data-id="${esc(l.loanId)}">${ic('down')} CSV</button></div></div></div>
-      <h3>Transaction history</h3>
+      <h3>Payment history</h3>
       <div class="scroll"><table class="tbl"><tr><th>Date</th><th>Particulars</th><th>OR No.</th><th class="r">Amount</th><th class="r">Penalty</th><th class="r">Balance</th></tr>
         ${l.history.map((h) => `<tr><td>${fd(h.date)}</td><td>${esc(h.particulars)}</td><td>${esc(h.orNo)}</td><td class="r">${h.amount ? peso(h.amount) : ''}</td><td class="r">${h.penalty ? peso(h.penalty) : ''}</td><td class="r">${peso(h.balance)}</td></tr>`).join('')}
         <tr class="tot"><td>${fd(l.releaseDate)}</td><td>Loan release — Cash, EMBRACE Program</td><td>${esc(l.checkNo ? 'Check ' + l.checkNo : '')}</td><td class="r"></td><td class="r"></td><td class="r">${peso(l.amount)}</td></tr></table></div>
@@ -112,7 +112,7 @@
       <tr><td>${fd(l.releaseDate)}</td><td>Cash - EMBRACE Program</td><td>${esc(l.checkNo ? 'Check No. ' + l.checkNo : '')}</td><td class="r">${peso(l.amount)}</td><td></td><td class="r">${peso(l.amount)}</td></tr>
       ${l.history.slice().reverse().map((x) => `<tr><td>${fd(x.date)}</td><td>${esc(x.particulars)}</td><td>${esc(x.orNo ? 'OR No. ' + x.orNo : '')}</td><td></td><td class="r">${x.amount ? peso(x.amount) : peso(x.penalty) + ' (penalty)'}</td><td class="r">${peso(x.balance)}</td></tr>`).join('')}</table>
       <p class="note">Penalty: 0.5% of the amortization due for every month of delay. Failure to pay three (3) consecutive monthly amortizations results in default and the whole obligation becomes due and demandable (EMBRACE IRR Sec. 10–11). Pay at the Iloilo Provincial Government BAYAD Center using a Payment Order Slip from the LEDIP Center.</p>
-      <div class="doc-foot">Generated by the EMBRACE Portal on ${C.fmtDate(new Date())} from payments posted by the LEDIP Center. For official purposes, request a certified statement from the Secretariat.</div>`;
+      <div class="doc-foot">Generated by NegosyoPlan on ${C.fmtDate(new Date())} from payments posted by the LEDIP Center. For official purposes, request a certified statement from the Secretariat.</div>`;
     return { title: 'Statement of Account – ' + l.loanId, html: h };
   }
 
@@ -120,9 +120,10 @@
     switch (a) {
       case 'lnRefresh': await load(true); render(cache); return true;
       case 'lnLink': {
-        const S = A().S; if (!S.session) { location.hash = '#settings'; return true; }
-        try { const r = await API.call({ action: 'linkLoan', token: S.session.token, loanRef: $('#lnRef').value, checkNo: $('#lnChk').value });
-          cache = { at: Date.now(), loans: r.loans, how: r.how }; await Store.setSecure('loans', cache); render(cache); A().toast('Loan linked to your account.', 'ok'); }
+        const er0 = $('#lnErr'); if (!navigator.onLine) { if (er0) er0.textContent = 'You need internet to link your loan the first time.'; return true; }
+        try { const k = await keys(); const r = await API.call({ action: 'linkLoan', loanRef: $('#lnRef').value, checkNo: $('#lnChk').value, loanKeys: k, deviceId: await devId() });
+          if (r.loanKey && k.indexOf(r.loanKey) < 0) { k.push(r.loanKey); await Store.setSecure('loanKeys', k); }
+          cache = { at: Date.now(), loans: r.loans, how: r.how }; await Store.setSecure('loans', cache); render(cache); A().toast('Loan linked on this phone.', 'ok'); }
         catch (e) { const er = $('#lnErr'); if (er) er.textContent = e.message; }
         return true;
       }
@@ -131,7 +132,7 @@
         const l = cache.loans.find((x) => x.loanId === b.dataset.id); if (!l) return true;
         const q = (s) => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
         const rows = [['Date', 'Particulars', 'OR No.', 'Amount', 'Penalty', 'Balance']].concat([[l.releaseDate, 'Loan release', l.checkNo, '', '', l.amount]], l.history.slice().reverse().map((h) => [h.date, h.particulars, h.orNo, h.amount, h.penalty, h.balance]));
-        A().download(new Blob(['﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n')], { type: 'text/csv' }), 'EMBRACE_loan_' + l.loanId + '_transactions.csv');
+        A().download(new Blob(['﻿' + rows.map((r) => r.map(q).join(',')).join('\r\n')], { type: 'text/csv' }), 'NegosyoPlan_loan_' + l.loanId + '_transactions.csv');
         return true;
       }
     }

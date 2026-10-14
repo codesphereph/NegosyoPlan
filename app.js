@@ -1,4 +1,4 @@
-/* EMBRACE Portal
+/* NegosyoPlan
    Main UI controller (vanilla JS, no external libraries, works offline). */
 (function (G) {
   'use strict';
@@ -24,7 +24,8 @@
     loan: '<rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 9v.01M18 15v.01"/>',
     docs: '<path d="M8 3h8l4 4v12a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M4 7v12a2 2 0 0 0 2 2"/><path d="M11 13l2 2 4-4"/>',
     cog: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>',
-    sound: '<path d="M11 5L6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14"/>',
+    store: '<path d="M3 9l1.5-5h15L21 9"/><path d="M3 9h18v2a3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0z"/><path d="M5 13v8h14v-8M10 21v-5h4v5"/>',
+    mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v1a7 7 0 0 0 14 0v-1M12 18v4M8 22h8"/>',
     bulb: '<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>',
     check: '<path d="M20 6L9 17l-5-5"/>',
     x: '<path d="M18 6L6 18M6 6l12 12"/>',
@@ -50,6 +51,7 @@
     send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
     users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>'
   };
+  const VOICE = () => (G.GrowVoice ? G.GrowVoice.button() : '');
   const LOGO = () => (G.GrowLanding ? G.GrowLanding.logo() : '');
   const ic = (k, cls) => `<svg class="ic ${cls || ''}" viewBox="0 0 24 24" aria-hidden="true">${ICON[k] || ''}</svg>`;
 
@@ -85,7 +87,7 @@
     const val = getPath(S.profile, o.path);
     const v = val == null ? '' : val;
     const reqMark = o.req ? `<span class="req" title="${t('Required')}">*</span>` : (o.opt ? ` <span class="opt">(${t('Optional')})</span>` : '');
-    const help = o.help ? `<div class="help">${o.help}${speakBtn(o.help)}</div>` : '';
+    const help = o.help ? `<div class="help">${o.help}</div>` : '';
     let input;
     const common = `id="${id}" data-bind="${o.path}" ${o.num ? 'data-num="1"' : ''} ${o.req ? 'aria-required="true"' : ''}`;
     const ph = o.ph ? `placeholder="${esc(o.ph)}"` : '';
@@ -106,11 +108,8 @@
     const ex = EX[o.path] && o.type === 'textarea'
       ? `<details class="example"><summary>${ic('bulb')} ${t('Example')}</summary><p>${esc(EX[o.path])}</p><button type="button" class="btn sm ghost" data-act="useEx" data-path="${o.path}">${t('Use this example')}</button></details>` : '';
     const missing = o.req && !has(val) && !(Array.isArray(val) && val.length) ? ' is-missing' : '';
-    return `<div class="fld ${o.cls || ''}${missing}"><label id="${id}l" for="${id}">${tb(o.label)}${reqMark}</label>${help}${input}${ex}</div>`;
-  }
-  function speakBtn(text) {
-    if (!('speechSynthesis' in G)) return '';
-    return ` <button type="button" class="speak" data-act="speak" data-text="${esc(String(text).replace(/<[^>]+>/g, ''))}" aria-label="${t('Read aloud')}" title="${t('Read aloud')}">${ic('sound')}</button>`;
+    const mic = !o.noMic && G.GrowVoice && G.GrowVoice.supported() && API.configured() ? G.GrowVoice.fieldMic(o.path) : '';
+    return `<div class="fld ${o.cls || ''}${missing}${mic ? ' has-mic' : ''}"><label id="${id}l" for="${id}">${tb(o.label)}${reqMark}</label>${mic}${help}${input}${ex}</div>`;
   }
   const row = (...cells) => `<div class="row">${cells.join('')}</div>`;
 
@@ -129,7 +128,8 @@
         }).join('')}
         <button type="button" class="icon-btn danger" data-act="delRow" data-path="${path}" data-i="${i}" aria-label="${t('Remove')}" title="${t('Remove')}">${ic('trash')}</button>
       </div>`).join('');
-    return `<div class="table-ed" data-path="${path}">
+    const vcols = cols.filter((c) => c.type !== 'calc').map((c) => ({ k: c.k, label: c.label, num: !!c.num, options: c.type === 'select' ? c.options.map((x) => (Array.isArray(x) ? x[0] + '=' + x[1] : x + '=' + x)) : [] }));
+    return `<div class="table-ed" data-path="${path}" data-tpl="${tpl}" data-cols="${esc(JSON.stringify(vcols))}">
       <div class="thead"><span class="rnum">#</span>${cols.map((c) => `<span class="tcell ${c.w || ''}">${esc(t(c.label))}</span>`).join('')}<span class="icon-btn-sp"></span></div>
       ${body || `<p class="muted pad">${t('No rows yet.')}</p>`}
       <button type="button" class="btn sm ghost add" data-act="addRow" data-path="${path}" data-tpl="${tpl}">${ic('plus')} ${t(opts.addLabel || 'Add row')}</button></div>`;
@@ -183,6 +183,7 @@
   }
   function renderSyncPill() {
     const el = $('#syncPill'); if (!el) return;
+    el.hidden = !S.session; if (!S.session) return;
     const s = syncLabel();
     el.className = 'pill ' + s.cls; el.innerHTML = ic(s.icon) + `<span>${esc(s.text)}</span>`;
   }
@@ -239,21 +240,21 @@
 
   /* ================================================================ shell */
   const NAV = [
-    ['#home', 'home', 'Home'], ['#passport', 'id', 'Passport'], ['#plan', 'plan', 'Plan'], ['#finance', 'chart', 'Finance'],
-    ['#loan', 'loan', 'Loan'], ['#docs', 'docs', 'Docs']
+    ['#home', 'home', 'Home'], ['#passport', 'id', 'Passport'], ['#plan', 'plan', 'Business Plan'], ['#finance', 'chart', 'Finance'],
+    ['#loan', 'loan', 'Loan'], ['#docs', 'docs', 'Docs'], ['#market', 'store', 'Marketplace']
   ];
   function shell() {
     document.body.innerHTML = `
       <a class="skip" href="#main">Skip to content</a>
       <header class="top">
-        <a class="brand" href="#home" aria-label="EMBRACE Portal home">${LOGO()}<span><b>EMBRACE Portal</b><small>Expanded Micro Business Recovery Assistance during Crisis and Emergency</small></span></a>
+        <a class="brand" href="#home" aria-label="NegosyoPlan home">${LOGO()}<span><b>NegosyoPlan</b><small>Business Plan &amp; Financial Statement Builder · MSME Enterprise Passport</small></span></a>
         <div class="top-r">
           <span id="syncPill" class="pill" role="status" aria-live="polite"></span>
           <label class="lang">${ic('globe')}<select id="langSel" aria-label="${t('Language')}">${Object.entries(I.LANGS).map(([k, v]) => `<option value="${k}" ${S.settings.lang === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
           <a class="icon-btn" href="#settings" aria-label="${t('Settings')}" title="${t('Settings')}">${ic('cog')}</a>
         </div>
       </header>
-      <nav class="side" aria-label="Main">${NAV.map(([h, i, l]) => `<a href="${h}" data-nav="${h}">${ic(i)}<span>${t(l)}</span></a>`).join('')}
+      <nav class="side" aria-label="Main">${NAV.map(([h, i, l]) => `<a href="${h}" data-nav="${h}" aria-label="${t(l)}">${ic(i)}<span>${l === 'Marketplace' ? `<span class="lbl-l">${t(l)}</span><span class="lbl-s">${t('Market')}</span>` : t(l)}</span></a>`).join('')}
         <a href="#programs" data-nav="#programs" class="desk-only">${ic('globe')}<span>${t('Programs')}</span></a>
         <a href="#settings" data-nav="#settings" class="desk-only">${ic('cog')}<span>${t('Settings')}</span></a>
         <div class="side-foot desk-only"><span id="saveState" aria-live="polite">${t('Saved on this device')}</span></div>
@@ -277,11 +278,11 @@
     if (S.shellMode !== 'app') { shell(); S.shellMode = 'app'; }
     fid = 0;
     $$('[data-nav]').forEach((a) => a.classList.toggle('on', a.dataset.nav === '#' + base));
-    const views = { home: vHome, passport: vPassport, plan: vPlan, finance: vFinance, loan: vLoan, docs: vDocs, settings: vSettings, programs: vPrograms };
+    const views = { home: vHome, passport: vPassport, plan: vPlan, finance: vFinance, loan: vLoan, docs: vDocs, settings: vSettings, programs: vPrograms, market: () => (G.GrowMarket ? G.GrowMarket.view() : '') };
     const fn = views[base] || vHome;
     const main = $('#main');
     main.innerHTML = fn(sub);
-    if (base !== 'settings' && base !== 'programs') { S.profile.meta.lastRoute = h; }
+    if (['settings', 'programs', 'market'].indexOf(base) < 0) { S.profile.meta.lastRoute = h; }
     refreshCalcs();
     main.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -290,6 +291,7 @@
     if (base === 'loan' && G.GrowLoans && $('#loanAcct')) G.GrowLoans.after();
     if (base === 'settings' && G.GrowInstall && $('#setInstall')) { localStorage.removeItem && (function () { try { localStorage.removeItem('growInstallLater'); } catch (e) { /* ignore */ } })(); G.GrowInstall.mount($('#setInstall'), 'app'); }
     if (base === 'home' && G.GrowInstall) G.GrowInstall.mount(main, 'app');
+    if (S._needUpgrade) { S._needUpgrade = false; upgradeDialog(); }
   }
 
   /* ================================================================ VIEWS */
@@ -317,14 +319,14 @@
     const empty = !p.owner.firstName && !p.business.name;
     const st = p.review && p.review.status && p.review.status !== 'Draft' ? p.review.status : '';
     return `<section class="hero">
-        <div><h1>${t('Welcome to EMBRACE Portal')}${name ? ', ' + name : ''}!</h1>
+        <div><h1>${t('Welcome to NegosyoPlan')}${name ? ', ' + name : ''}!</h1>
         <p class="lead">Prepare your business plan, financial statements and EMBRACE loan requirements — step by step, in simple language, ${t('Works even without internet').toLowerCase()}.</p>
         ${p.meta.lastRoute && p.meta.lastRoute !== '#home' ? `<a class="btn big" href="${esc(p.meta.lastRoute)}">${t('Continue where you left off')} ${ic('arrowR')}</a>` : `<a class="btn big" href="#passport/owner">${t('Get started')} ${ic('arrowR')}</a>`}
         ${empty ? `<button class="btn ghost" data-act="loadSample">${t('Load sample business')}</button>` : ''}</div>
         <div class="hero-ring">${ring(ov.pct, 120, t('Readiness'))}<span>${t('Readiness')}</span><small>${t('Days since you started')}: ${days}</small></div>
       </section>
-      ${st ? `<div class="status-banner">${ic('send')} Application status: <b>${esc(st)}</b>${p.review.remarks ? ' — ' + esc(p.review.remarks) : ''}</div>` : ''}
       ${G.GrowLoans ? G.GrowLoans.homeCard() : ''}
+      ${st ? `<div class="status-banner">${ic('send')} Application status: <b>${esc(st)}</b>${p.review.remarks ? ' — ' + esc(p.review.remarks) : ''}</div>` : ''}
       <h2 class="sec">${t('Your progress')}</h2>
       <div class="cards">${cards.map(([h, i, l, pct, d]) => `<a class="card mod" href="${h}">${ic(i, 'big')}<div><h3>${t(l)}</h3><p>${d}</p></div>${ring(pct, 56, t(l))}</a>`).join('')}</div>
       <div class="grid2">
@@ -347,8 +349,8 @@
   function vPassport(sub) {
     sub = sub || 'owner';
     const p = S.profile;
-    const head = `<div class="page-head"><div><h1>${t('MSME Enterprise Passport')}</h1><p class="muted">${p.passportId ? 'Passport ID <b>' + esc(p.passportId) + '</b> · ' : ''}Fill in once — the portal reuses this in every form.</p></div>
-      <button class="btn ghost" data-act="doc" data-doc="passport">${ic('eye')} ${t('Preview')}</button></div>` + tabs('#passport', PTABS, sub);
+    const head = `<div class="page-head"><div><h1>${t('MSME Enterprise Passport')}</h1><p class="muted">${p.passportId ? 'Passport ID <b>' + esc(p.passportId) + '</b> · ' : ''}Fill in once — NegosyoPlan reuses this in every form.</p></div>
+      <div class="btns">${['owner', 'business', 'trainings', 'needs'].indexOf(sub) >= 0 ? VOICE() : ''}<button class="btn ghost" data-act="doc" data-doc="passport">${ic('eye')} ${t('Preview')}</button></div></div>` + tabs('#passport', PTABS, sub);
     const body = { owner: pOwner, business: pBusiness, financial: pFinancial, trainings: pTrainings, documents: pDocuments, needs: pNeeds }[sub] || pOwner;
     const idx = PTABS.findIndex((x) => x[0] === sub);
     const nav = `<div class="stepnav">${idx > 0 ? `<a class="btn ghost" href="#passport/${PTABS[idx - 1][0]}">${ic('arrowL')} ${t('Back')}</a>` : '<span></span>'}
@@ -408,7 +410,7 @@
         <div class="stat"><span>Projected monthly sales</span><b>${pc.salesM ? peso(pc.salesM) : '—'}</b></div>
         <div class="stat"><span>Financing requirement</span><b>${pc.loan.amount ? peso(pc.loan.amount) : '—'}</b></div>
       </div>
-      <div class="btns"><a class="btn ghost" href="#finance">${ic('chart')} ${t('Financial Statements')}</a><a class="btn ghost" href="#plan/6">${ic('plan')} ${t('Sales Forecast & Cash Flow')}</a><a class="btn ghost" href="#loan">${ic('loan')} ${t('EMBRACE Loan')}</a></div>`;
+      <div class="btns"><a class="btn ghost" href="#finance">${ic('chart')} ${t('Financial Statements')}</a><a class="btn ghost" href="#plan/6">${ic('plan')} ${t('Sales Forecast & Cash Flow Projection')}</a><a class="btn ghost" href="#loan">${ic('loan')} ${t('EMBRACE Loan')}</a></div>`;
   }
   function verBadge(id) {
     const v = S.profile.review && S.profile.review.verified && S.profile.review.verified[id];
@@ -418,7 +420,7 @@
     const p = S.profile;
     const certs = p.documents.filter((d) => d.category === 'Training Certificate');
     return `<h2>${t('Trainings')} &amp; capacity development</h2>
-      <p class="help">Record trainings, seminars, workshops, coaching or mentoring you attended. These help OLEDIPO recommend support for you. They are <b>not</b> loan requirements unless officially required (OFW applicants need a Basic Entrepreneurship Training certificate).${speakBtn('Record trainings, seminars, workshops, coaching or mentoring you attended.')}</p>
+      <p class="help">Record trainings, seminars, workshops, coaching or mentoring you attended. These help OLEDIPO recommend support for you. They are <b>not</b> loan requirements unless officially required (OFW applicants need a Basic Entrepreneurship Training certificate).</p>
       ${p.trainings.map((tr, i) => `<div class="sub-card"><div class="sub-head"><b>${i + 1}. ${esc(tr.title || 'New training')}</b> ${verBadge(tr.id)}<button class="icon-btn danger" data-act="delRow" data-path="trainings" data-i="${i}" aria-label="${t('Remove')}">${ic('trash')}</button></div>
         ${row(field({ path: `trainings.${i}.title`, label: 'Training title', req: true, cls: 'w3' }), field({ path: `trainings.${i}.kind`, label: 'Type', type: 'select', options: ['Training', 'Seminar', 'Workshop', 'Coaching', 'Mentoring', 'Webinar'] }))}
         ${row(field({ path: `trainings.${i}.provider`, label: 'Provider', ph: 'e.g. DTI Iloilo, LEDIP Center, TESDA' }), field({ path: `trainings.${i}.date`, label: 'Date', type: 'date' }), field({ path: `trainings.${i}.hours`, label: 'Hours', inputmode: 'decimal', cls: 'w1' }))}
@@ -426,38 +428,39 @@
         <div class="fld"><label>Certificate</label><div class="row"><select data-bind="trainings.${i}.certificateDocId"><option value="">— none —</option>${certs.map((d) => `<option value="${d.id}" ${tr.certificateDocId === d.id ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}</select>
         <label class="btn sm ghost file-btn">${ic('cam')} Upload certificate<input type="file" accept="image/*,application/pdf" data-upload="Training Certificate" data-link="trainings.${i}.certificateDocId" hidden></label></div></div>
       </div>`).join('') || `<p class="muted">No trainings recorded yet.</p>`}
-      <button class="btn ghost" data-act="addRow" data-path="trainings" data-tpl="training">${ic('plus')} Add a training</button>`;
+      <button class="btn ghost" data-act="addRow" data-path="trainings" data-tpl="training">${ic('plus')} Add a training</button>
+      <div hidden data-voice-table="trainings" data-tpl="training" data-label="New training" data-cols="${esc(JSON.stringify([{ k: 'title', label: 'Training title' }, { k: 'kind', label: 'Type', options: ['Training', 'Seminar', 'Workshop', 'Coaching', 'Mentoring', 'Webinar'].map((x) => x + '=' + x) }, { k: 'provider', label: 'Provider' }, { k: 'date', label: 'Date (YYYY-MM-DD)' }, { k: 'hours', label: 'Hours', num: true }, { k: 'topics', label: 'Topics' }, { k: 'skills', label: 'Skills acquired' }]))}"></div>`;
   }
   function pDocuments() {
     const p = S.profile;
     return `<h2>${t('Documents')}</h2>
-      <p class="help">Take a clear photo or choose a PDF of your permits, certificates and records. Files are stored securely on this device and, when you are online with an account, saved in OLEDIPO's Google Drive. AI can then check each one for completeness.${speakBtn('Take a clear photo or choose a PDF of your permits, certificates and records.')}</p>
+      <p class="help">Take a clear photo or choose a PDF of your permits, certificates and records. Files are stored securely on this device and, when you are online with an account and have given consent, saved in OLEDIPO's Google Drive.</p>
       <div class="upload-box"><label for="upCat">Document type</label><select id="upCat">${C.DOC_CATEGORIES.map((c) => `<option>${esc(c)}</option>`).join('')}</select>
         <label class="btn big file-btn">${ic('cam')} ${t('Take photo / choose file')}<input type="file" accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx" data-upload="#upCat" hidden></label>
         <small class="muted">PDF, photo, Word or Excel · up to 5 MB. Photos are resized to save space.</small></div>
       <ul class="doclist">${p.documents.map((d) => `<li><div><b>${esc(d.category)}</b><span>${esc(d.name)} · ${(d.size / 1024).toFixed(0)} KB · ${C.fmtDate(d.addedAt)}</span></div>
         ${verBadge(d.id)} ${d.driveId ? `<span class="badge">${ic('cloud')} uploaded</span>` : ''}
         <button class="icon-btn" data-act="viewFile" data-id="${d.id}" aria-label="View">${ic('eye')}</button>
-        <button class="icon-btn danger" data-act="delDoc" data-id="${d.id}" aria-label="${t('Remove')}">${ic('trash')}</button>${G.GrowAI ? G.GrowAI.docBlock(d) : ''}</li>`).join('') || '<li class="muted">No documents yet.</li>'}</ul>`;
+        <button class="icon-btn danger" data-act="delDoc" data-id="${d.id}" aria-label="${t('Remove')}">${ic('trash')}</button></li>`).join('') || '<li class="muted">No documents yet.</li>'}</ul>`;
   }
   function pNeeds() {
     const sug = C.suggestedNeeds(S.profile);
-    return `<h2>${t('Development needs')}</h2><p class="help">What would you like to learn or improve? This helps OLEDIPO plan trainings and technical assistance.${speakBtn('What would you like to learn or improve?')}</p>
+    return `<h2>${t('Development needs')}</h2><p class="help">What would you like to learn or improve? This helps OLEDIPO plan trainings and technical assistance.</p>
       ${sug.length ? `<div class="hint">${ic('bulb')} Suggested from your answers: ${sug.map((s) => `<button class="chip-btn" data-act="addNeed" data-v="${esc(s)}">${esc(s)} +</button>`).join(' ')}</div>` : ''}
       ${field({ path: 'needs', label: 'Topics', type: 'checks', options: C.NEEDS })}
       ${field({ path: 'needsOther', label: 'Others', opt: true })}`;
   }
 
   /* ---------------------------------------------------------------- PLAN */
-  const STEPS = ['Business Profile', 'Products & Target Market', 'Marketing & Sales', 'Operations & Management', 'Costing & Pricing',
-    'Sales Forecast & Cash Flow', 'Financing & Use of Funds', 'Break-even & Goals', 'Risks & Mitigation', 'Review & Generate'];
+  const STEPS = ['Executive Summary & Business Profile', 'Products or Services & Target Market', 'Marketing & Sales Strategy', 'Operations & Management', 'Costing & Pricing',
+    'Sales Forecast & Cash Flow Projection', 'Financing Requirements & Intended Use of Funds', 'Break-even Analysis & Business Development Goals', 'Risks & Mitigation Measures', 'Review, Save & Print'];
   function vPlan(sub) {
     const step = Math.min(10, Math.max(1, parseInt(sub, 10) || 1));
     const comp = C.completenessOf(S.profile, 'plan');
     const stepMissing = comp.missing.filter((m) => m.route === '#plan/' + step);
     const fns = [s1, s2, s3, s4, s5, s6, s7, s8, s9, s10];
     return `<div class="page-head"><div><h1>${t('Business Plan')} <small class="muted">Annex D</small></h1><p class="muted">${t('Step')} ${step} ${t('of')} 10 · ${comp.pct}% ${t('Complete').toLowerCase()}</p></div>
-        <button class="btn ghost" data-act="doc" data-doc="plan">${ic('eye')} ${t('Preview')}</button></div>
+        <div class="btns">${step < 10 ? VOICE() : ''}<button class="btn ghost" data-act="doc" data-doc="plan">${ic('eye')} ${t('Preview')}</button></div></div>
       <ol class="stepper" aria-label="Steps">${STEPS.map((s, i) => { const m = comp.missing.some((x) => x.route === '#plan/' + (i + 1)); return `<li class="${i + 1 === step ? 'on' : ''} ${m ? 'miss' : 'ok'}"><a href="#plan/${i + 1}" aria-current="${i + 1 === step ? 'step' : 'false'}"><span>${i + 1}</span><em>${t(s)}</em></a></li>`; }).join('')}</ol>
       <div class="form-card"><h2>${step}. ${t(STEPS[step - 1])}</h2>${fns[step - 1]()}
       ${step < 10 && stepMissing.length ? `<div class="issues soft"><ul>${stepMissing.map((m) => `<li>${t('Missing')}: ${esc(m.msg)}</li>`).join('')}</ul></div>` : ''}</div>
@@ -471,11 +474,14 @@
       field({ path: 'plan.projectName', label: 'Name of project', req: true, type: 'textarea', rows: 2, help: 'What will you do with the loan? Example: "Purchase of freezer and working capital for ..."' }) +
       field({ path: 'business.nature', label: 'Nature of business', ph: 'e.g. Eatery, Sari-sari store, Feeds retailing' }) +
       field({ path: 'business.ownership', label: 'Form of business', type: 'radio', options: ['Single Proprietorship', 'Partnership', 'Others'] }) +
-      field({ path: 'business.description', label: 'Brief description of the business', type: 'textarea', req: true, help: 'When did it start? What do you sell? Who are your customers? How did the crisis affect you?' });
+      field({ path: 'business.description', label: 'Brief description of the business', type: 'textarea', req: true, help: 'When did it start? What do you sell? Who are your customers? How did the crisis affect you?' }) +
+      `<h3>Executive summary</h3><p class="help">A short introduction to your whole plan. Easiest: finish Steps 2–9 first, then press the button to write a draft from your answers and edit it.</p>
+      <button type="button" class="btn sm ghost" data-act="genSummary">${ic('bulb')} Write a draft from my answers</button>` +
+      field({ path: 'plan.summary', label: 'Executive summary', type: 'textarea', rows: 6, opt: true });
   }
   function s2() {
     return field({ path: 'plan.productDescription', label: 'Description of the product / service', type: 'textarea', req: true, help: 'Describe what you sell, how it is made, and what makes it good.' }) +
-      `<h3>${t('Selling price')} and expected sales</h3><p class="help">List each product. Enter the price and how many you usually sell.${speakBtn('List each product. Enter the price and how many you usually sell.')}</p>` +
+      `<h3>${t('Selling price')} and expected sales</h3><p class="help">List each product. Enter the price and how many you usually sell.</p>` +
       tableEditor('plan.products', [
         { k: 'name', label: 'Product', w: 'w3', ph: 'e.g. Batchoy (regular)' }, { k: 'unit', label: 'Unit', ph: 'bowl, pack, kg' },
         { k: 'price', label: 'Selling price', num: 1, ph: '₱' }, { k: 'qty', label: 'Quantity sold', num: 1 },
@@ -507,7 +513,7 @@
   }
   function s5() {
     const prods = S.profile.plan.products;
-    return `<p class="help">For each product, enter the costs for ONE production batch (or one purchase for trading). The app computes the cost per unit and your mark-up.${speakBtn('For each product, enter the costs for one production batch. The app computes the cost per unit and your mark-up.')}</p>` +
+    return `<p class="help">For each product, enter the costs for ONE production batch (or one purchase for trading). The app computes the cost per unit and your mark-up.</p>` +
       (prods.length ? prods.map((pr, i) => `<div class="sub-card"><div class="sub-head"><b>${esc(pr.name || 'Product ' + (i + 1))}</b><span class="muted">${t('Selling price')}: ${pr.price ? peso(n(pr.price)) : '—'}</span></div>
         ${row(field({ path: `plan.products.${i}.costing.materials`, label: 'Materials per batch', type: 'money' }), field({ path: `plan.products.${i}.costing.labor`, label: 'Labor per batch', type: 'money', opt: true }),
           field({ path: `plan.products.${i}.costing.overhead`, label: 'Overhead per batch (fuel, electricity, packaging)', type: 'money', opt: true }), field({ path: `plan.products.${i}.costing.units`, label: 'Units produced per batch', inputmode: 'numeric', num: 1 }))}
@@ -518,7 +524,7 @@
       `<div class="calc-panel" data-calc="planMonthly"></div>`;
   }
   function s6() {
-    return `<p class="help">The app projects your sales and cash for the next 12 months using only the numbers you entered. Change the assumptions below.${speakBtn('The app projects your sales and cash for the next 12 months using only the numbers you entered.')}</p>` +
+    return `<p class="help">The app projects your sales and cash for the next 12 months using only the numbers you entered. Change the assumptions below.</p>` +
       row(field({ path: 'plan.beginningCash', label: 'Cash you have now (beginning cash)', type: 'money', req: true, help: 'Enter 0 if none.' }),
         field({ path: 'plan.growthPct', label: 'Expected sales growth per month', suf: '%', inputmode: 'decimal', opt: true, help: 'Leave blank or 0 if you expect the same sales every month.' }),
         field({ path: 'plan.drawings', label: "Owner's monthly drawings (household use)", type: 'money', opt: true })) +
@@ -576,7 +582,7 @@
     let body = '';
     if (!y) body = `<p class="muted">Add a year to start.</p>`;
     else if (tab === 'is') {
-      body = `<p class="help">Enter totals for the whole year ${y.year}. Use your notebook, receipts or sales records.${speakBtn('Enter totals for the whole year. Use your notebook, receipts or sales records.')}</p>` +
+      body = `<p class="help">Enter totals for the whole year ${y.year}. Use your notebook, receipts or sales records.</p>` +
         field({ path: base + '.sales', label: 'Sales', type: 'money', req: true, help: 'All money from selling products or services for the year.' }) +
         `<h3>Cost of sales</h3>` + row(field({ path: base + '.begInv', label: 'Beginning inventory', type: 'money', help: 'Value of goods/materials on hand at the start of the year.' }), field({ path: base + '.purchases', label: 'Purchases', type: 'money', help: 'Goods or raw materials bought during the year.' }), field({ path: base + '.endInv', label: 'Ending inventory', type: 'money', help: 'Value of goods left at the end of the year.' })) +
         `<div class="calc-line" data-calc="fsCogs"></div><h3>Operating expenses</h3>` +
@@ -604,10 +610,10 @@
       body = `<div data-calc="fsCompare"></div>`;
     }
     return `<div class="page-head"><div><h1>${t('Financial Statements')}</h1><p class="muted">${comp.pct}% ${t('Complete').toLowerCase()} · Computed automatically from your entries.</p></div>
-        <div class="btns"><button class="btn ghost" data-act="doc" data-doc="fs">${ic('eye')} ${t('Preview')}</button><button class="btn ghost" data-act="fsCsv">${ic('down')} CSV</button></div></div>
+        <div class="btns">${y && tab !== 'ind' ? VOICE() : ''}<button class="btn ghost" data-act="doc" data-doc="fs">${ic('eye')} ${t('Preview')}</button><button class="btn ghost" data-act="fsCsv">${ic('down')} CSV</button></div></div>
       <div class="years" role="tablist" aria-label="Year">${fs.years.map((yy, i) => `<button role="tab" class="year ${i === yi ? 'on' : ''}" data-act="fsYear" data-i="${i}" aria-selected="${i === yi}">${yy.year}<small class="${yy.basis}">${yy.basis === 'estimate' ? t('Estimate') : t('Actual')}</small></button>`).join('')}
         <button class="year add" data-act="addYear" aria-label="${t('Add year')}">${ic('plus')}<small>${t('Add year')}</small></button></div>
-      ${y ? `<div class="year-bar"><span>${y.year}:</span>${field({ path: base + '.basis', label: 'These figures are', type: 'radio', options: [['actual', 'Actual (from records)'], ['estimate', 'Estimate / projection']] }).replace('class="fld ', 'class="fld inline ')}
+      ${y ? `<div class="year-bar"><span>${y.year}:</span>${field({ path: base + '.basis', noMic: true, label: 'These figures are', type: 'radio', options: [['actual', 'Actual (from records)'], ['estimate', 'Estimate / projection']] }).replace('class="fld ', 'class="fld inline ')}
         <button class="btn sm ghost" data-act="prevFill" ${yi === 0 ? 'disabled' : ''}>Bring beginning balances from ${y.year - 1}</button>
         <button class="btn sm ghost danger" data-act="delYear">${ic('trash')} Remove ${y.year}</button></div>` : ''}
       <div class="tabs" role="tablist">${[['is', 'Income Statement'], ['bs', 'Balance Sheet'], ['cf', 'Cash Flow Statement'], ['ind', 'Indicators & Checks']].map(([k, l]) => `<button role="tab" class="${tab === k ? 'on' : ''}" data-act="fsTab" data-t="${k}" aria-selected="${tab === k}">${t(l)}</button>`).join('')}</div>
@@ -619,8 +625,8 @@
   /* ---------------------------------------------------------------- LOAN */
   function vLoan(sub) {
     if (!sub) sub = G.GrowLoans && G.GrowLoans.hasLoans() ? 'account' : 'apply';
-    const tabsHtml = `<div class="tabs loan-tabs" role="tablist"><a role="tab" href="#loan/account" class="${sub === 'account' ? 'on' : ''}">${ic('loan')} My Loan</a><a role="tab" href="#loan/apply" class="${sub === 'apply' ? 'on' : ''}">${ic('send')} Apply for EMBRACE</a></div>`;
-    if (sub === 'account') return `<div class="page-head"><div><h1>${t('EMBRACE Loan')}</h1><p class="muted">Loan status, payments and due dates</p></div></div>` + tabsHtml + (G.GrowLoans ? G.GrowLoans.view() : '');
+    const tabsHtml = `<div class="tabs loan-tabs" role="tablist"><a role="tab" href="#loan/apply" class="${sub !== 'account' ? 'on' : ''}">${ic('send')} ${t('Apply for EMBRACE')}</a><a role="tab" href="#loan/account" class="${sub === 'account' ? 'on' : ''}">${ic('loan')} ${t('My Loan')}</a></div>`;
+    if (sub === 'account') return `<div class="page-head"><div><h1>${t('My Loan')}</h1><p class="muted">${t('Remaining balance, upcoming payment, maturity date and payment history')}</p></div></div>` + tabsHtml + (G.GrowLoans ? G.GrowLoans.view() : '');
     return tabsHtml + vLoanApply();
   }
   function vLoanApply() {
@@ -668,7 +674,7 @@
         <label class="toggle consent"><input type="checkbox" data-bool="consent.share" ${p.consent.share ? 'checked' : ''}> I consent to share my Enterprise Passport, business plan, financial statements and uploaded documents with OLEDIPO / LEDIP Center of the Provincial Government of Iloilo for evaluation of my EMBRACE application and for business development assistance. I confirm the information is true to the best of my knowledge.</label>
         <div class="btns"><button class="btn big" data-act="submit" ${!p.consent.share ? 'disabled' : ''}>${ic('send')} ${t('Submit to OLEDIPO')}</button>
         <a class="btn ghost" href="#docs">${ic('print')} Print documents instead</a></div>
-        <p class="muted small">Online submission needs internet and a linked online account (see ${t('Settings')}). You can also print your documents and submit them in person at the LEDIP Center.</p>
+        <p class="muted small">Online submission needs internet. The first time, you will be asked to create your online account (username and password) so OLEDIPO can receive your application. You can also print your documents and submit them in person at the LEDIP Center.</p>
       </div>`;
   }
 
@@ -694,22 +700,17 @@
         <div class="fld"><label>${t('Text size')}</label><div class="chips">${[[1, 'Normal'], [1.15, 'Large'], [1.3, 'Extra large']].map(([k, v]) => `<label class="chip"><input type="radio" name="size" data-setting="size" value="${k}" ${Number(s.size) === k ? 'checked' : ''}><span style="font-size:${k}em">${v}</span></label>`).join('')}</div></div>
         <label class="toggle"><input type="checkbox" data-setting="contrast" ${s.contrast ? 'checked' : ''}> ${t('High contrast')}</label>
       </div>
-      <div class="form-card"><h2>${ic('cloud')} Online account &amp; sync</h2>
-        ${!API.configured() ? `<p class="muted">The online server is not configured for this copy of the EMBRACE Portal. Your data stays on this device. (Administrators: set API_URL in js/config.js.)</p>` :
-        linked ? `<p>Linked to EMBRACE Passport <b>${esc(S.session.passportId)}</b>. ${S.session.lastSync ? 'Last sync: ' + new Date(S.session.lastSync).toLocaleString() : ''}</p>
-          <div class="btns"><button class="btn" data-act="syncNow">${ic('cloud')} ${t('Sync now')}</button><button class="btn ghost" data-act="signOut">${t('Sign out')}</button></div>
-          <p class="muted small">Your data is saved on this device first and sent to the OLEDIPO server automatically when you have internet.</p>` :
-        `<p>Link an online account to back up your Passport, use it on another device, and submit your application online.</p>
-          <div class="btns"><button class="btn" data-act="register">${t('Create account')}</button><button class="btn ghost" data-act="signIn">${t('Sign in')}</button></div>`}
-      </div>
       ${G.GrowInstall && G.GrowInstall.available() ? `<div class="form-card"><h2>${ic('down')} Install the app</h2><div id="setInstall"></div></div>` : ''}
-      <div class="form-card"><h2>${ic('bulb')} AI assistance</h2><p class="muted">AI (OpenAI) checks your uploaded documents for completeness. Results are suggestions only; OLEDIPO staff do the official checks.</p>
-        <p>Status: <b>${S.profile.consent && S.profile.consent.ai ? 'Allowed since ' + C.fmtDate(S.profile.consent.aiAt) : 'Not allowed'}</b></p>
-        <div class="btns">${S.profile.consent && S.profile.consent.ai ? `<button class="btn ghost" data-act="aiConsentOff">Withdraw AI consent</button>` : `<button class="btn ghost" data-act="aiConsentOn">Allow AI assistance</button>`}</div></div>
-      <div class="form-card"><h2>${ic('lock')} Security</h2><p class="muted">${Store.cryptoAvailable ? 'Your data on this device is encrypted with your PIN (AES-256).' : 'This browser does not support encryption — use the HTTPS address of the EMBRACE Portal for encrypted storage.'}</p>
-        <div class="btns"><button class="btn ghost" data-act="changePin">Change PIN</button><button class="btn ghost" data-act="lockNow">${ic('lock')} Lock now</button><button class="btn ghost danger" data-act="wipe">${ic('trash')} Erase all data on this device</button></div></div>
-      <div class="form-card"><h2>About the EMBRACE Portal</h2><p><b>EMBRACE Portal — Expanded Micro Business Recovery Assistance during Crisis and Emergency</b> v${esc(G.GROW_CONFIG.VERSION)}. Developed for the ${esc(G.GROW_CONFIG.OFFICE)}, ${esc(G.GROW_CONFIG.LGU)}, in response to the 2026 Iloilo Startup Hackathon challenge “NegosyoPlan”.</p>
-        <p class="muted small">Financial computations use only the information you provide. Missing information is flagged, not invented. Professional review of financial statements is recommended. The EMBRACE Portal does not guarantee loan approval.</p>
+      <div class="form-card"><h2>${ic('mic')} ${t('Voice to Text')}</h2><p class="muted">Tap <b>${t('Voice to Text')}</b> on the Passport, Business Plan or Financial Statements pages and speak in English, Filipino or Hiligaynon. NegosyoPlan fills in the page for you to check. Needs internet; your recording is sent to OpenAI to turn speech into text and is not saved.</p>
+        <p>${t('Feature')}: <b>${G.GrowVoice && G.GrowVoice.unlocked() ? ic('check') + ' Unlocked' : ic('lock') + ' Locked — ₱700 one-time via GCash' + (G.GrowVoice && G.GrowVoice.status() ? ' (' + esc(G.GrowVoice.status()) + ')' : '')}</b></p>
+        ${G.GrowVoice && !G.GrowVoice.unlocked() ? `<div class="btns"><button class="btn gcash" data-act="payOpen">${ic('lock')} ${t('Unlock Voice to Text')}</button></div>` : ''}
+        <p>Privacy consent: <b>${S.profile.consent && S.profile.consent.voice ? 'Given on ' + C.fmtDate(S.profile.consent.voiceAt) : 'Not yet (you will be asked the first time)'}</b></p>
+        ${S.profile.consent && S.profile.consent.voice ? `<div class="btns"><button class="btn ghost" data-act="voiceConsentOff">Stop using Voice to Text</button></div>` : ''}
+        ${G.GrowVoice && !G.GrowVoice.supported() ? '<p class="warn small">This browser cannot record sound. Use Chrome, Edge, Samsung Internet or Safari (iPhone iOS 14.5+).</p>' : ''}</div>
+      <div class="form-card"><h2>${ic('lock')} Security</h2><p class="muted">${Store.cryptoAvailable ? 'Your data on this device is encrypted with your password (AES-256).' : 'This browser does not support encryption — use the HTTPS address of NegosyoPlan for encrypted storage.'}</p>
+        <div class="btns"><button class="btn ghost" data-act="changePin">${t('Change password')}</button><button class="btn ghost" data-act="lockNow">${ic('lock')} Lock now</button><button class="btn ghost danger" data-act="wipe">${ic('trash')} Erase all data on this device</button></div></div>
+      <div class="form-card"><h2>About NegosyoPlan</h2><p><b>NegosyoPlan — Business Plan &amp; Financial Statement Builder · MSME Enterprise Passport</b> v${esc(G.GROW_CONFIG.VERSION)}. Developed for the ${esc(G.GROW_CONFIG.OFFICE)}, ${esc(G.GROW_CONFIG.LGU)}, to help micro-entrepreneurs and MSMEs, especially EMBRACE (Expanded Micro Business Recovery Assistance during Crisis and Emergency) loan applicants, prepare business plans and financial statements and keep a reusable MSME Enterprise Passport.</p>
+        <p class="muted small">Financial computations use only the information you provide. Missing information is flagged, not invented. Professional review of financial statements is recommended. NegosyoPlan does not guarantee loan approval.</p>
         <p><a href="#admin">${ic('users')} ${t('OLEDIPO Staff')}</a></p></div>`;
   }
 
@@ -861,8 +862,7 @@
         arr.splice(Number(b.dataset.i), 1); touch(); route(); break;
       }
       case 'useEx': setPath(p, b.dataset.path, EX[b.dataset.path]); touch(); route(); break;
-      case 'speak': speak(b.dataset.text); break;
-      case 'closeModal': closeModal(); break;
+      case 'closeModal': if (G.GrowVoice) G.GrowVoice.cancel(); closeModal(); break;
       case 'copyAddr': p.business.address = Object.assign({}, p.owner.address); touch(); route(); break;
       case 'fillFromFs': {
         const lf = C.latestFs(p); if (!lf) return toast('No financial statement yet.', 'err');
@@ -933,7 +933,7 @@
         if (d && d.driveId && S.session) API.call({ action: 'deleteFile', token: S.session.token, driveId: d.driveId }).catch(() => {});
         touch(); route(); break;
       }
-      case 'loadSample': if (confirm('Load a fictional sample business to try the EMBRACE Portal? You can erase it later in Settings.')) { S.profile = C.normalize(sampleProfile()); touch(); route(); } break;
+      case 'loadSample': if (confirm('Load a fictional sample business to try NegosyoPlan? You can erase it later in Settings.')) { S.profile = C.normalize(sampleProfile()); touch(); route(); } break;
       case 'backup': backup(); break;
       case 'submit': submitApp(); break;
       case 'syncNow': sync({ toast: true }); break;
@@ -950,9 +950,11 @@
       }
       case 'changePin': pinChangeDialog(); break;
       case 'doChangePin': doChangePin(); break;
+      case 'doUpgrade': doUpgrade(); break;
+      case 'togglePw': { const i = document.getElementById(b.dataset.for); if (i) { i.type = i.type === 'password' ? 'text' : 'password'; b.classList.toggle('on', i.type === 'text'); } break; }
       case 'lockNow': Store.lock(); lockScreen(); break;
-      case 'wipe': if (confirm('Erase ALL EMBRACE Portal data on this device? Download a backup first if you need it.') && confirm('Are you sure? This cannot be undone.')) { await Store.wipe(); location.hash = ''; location.reload(); } break;
-      default: if (G.GrowLoans && /^ln[A-Z]/.test(a)) { G.GrowLoans.onClick(a, b); return; } if (G.GrowAI && G.GrowAI.onClick(a, b)) return; if (G.GrowAdmin && G.GrowAdmin.onClick) G.GrowAdmin.onClick(a, b, e);
+      case 'wipe': if (confirm('Erase ALL NegosyoPlan data on this device? Download a backup first if you need it.') && confirm('Are you sure? This cannot be undone.')) { await Store.wipe(); location.hash = ''; location.reload(); } break;
+      default: if (G.GrowLoans && /^ln[A-Z]/.test(a)) { G.GrowLoans.onClick(a, b); return; } if (G.GrowMarket && /^mk[A-Z]/.test(a)) { G.GrowMarket.onClick(a, b); return; } if (G.GrowVoice && G.GrowVoice.onClick(a, b)) return; if (G.GrowAdmin && G.GrowAdmin.onClick) G.GrowAdmin.onClick(a, b, e);
     }
   }
 
@@ -972,7 +974,6 @@
       S.profile.documents.push({ id, category: cat, name, mime, size, addedAt: new Date().toISOString(), driveId: '' });
       if (el.dataset.link) setPath(S.profile, el.dataset.link, id);
       touch(); route(); toast('Saved: ' + cat, 'ok');
-      if (G.GrowAI) G.GrowAI.afterUpload(id);
     } catch (err) { toast('Could not read file: ' + err.message, 'err'); }
   }
   function readAsDataURL(f) { return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(f); }); }
@@ -1027,15 +1028,15 @@
   async function backup() {
     const files = {};
     for (const d of S.profile.documents) { const f = await Store.getFile(d.id); if (f) files[d.id] = f; }
-    const data = { app: 'EMBRACE', version: G.GROW_CONFIG.VERSION, exportedAt: new Date().toISOString(), profile: S.profile, files };
-    download(new Blob([JSON.stringify(data)], { type: 'application/json' }), fileName('EMBRACE_backup') + '_' + new Date().toISOString().slice(0, 10) + '.json');
+    const data = { app: 'NegosyoPlan', version: G.GROW_CONFIG.VERSION, exportedAt: new Date().toISOString(), profile: S.profile, files };
+    download(new Blob([JSON.stringify(data)], { type: 'application/json' }), fileName('NegosyoPlan_backup') + '_' + new Date().toISOString().slice(0, 10) + '.json');
     toast('Backup downloaded. Keep it in a safe place — it contains your personal information.', 'ok');
   }
   async function restore(file) {
     if (!file) return;
     try {
       const data = JSON.parse(await file.text());
-      if (['GROW', 'EMBRACE'].indexOf(data.app) < 0 || !data.profile) throw new Error('Not an EMBRACE Portal backup file.');
+      if (['GROW', 'EMBRACE', 'NegosyoPlan'].indexOf(data.app) < 0 || !data.profile) throw new Error('Not a NegosyoPlan backup file.');
       if (!confirm('Replace the data on this device with the backup from ' + new Date(data.exportedAt).toLocaleString() + '?')) return;
       S.profile = C.normalize(data.profile);
       for (const id of Object.keys(data.files || {})) await Store.putFile(id, data.files[id]);
@@ -1043,50 +1044,63 @@
     } catch (e) { toast(e.message, 'err'); }
   }
 
-  /* ================================================================ accounts */
-  function accountDialog(mode) {
+  /* ================================================================ username + password */
+  const normUser = (u) => String(u || '').trim().toLowerCase();
+  function userError(u) { return /^[a-z0-9._]{4,30}$/.test(normUser(u)) ? '' : t('Username: 4 to 30 letters or numbers (you may use . or _), no spaces.'); }
+  function passError(p) { return String(p || '').length >= 8 && /[A-Za-z]/.test(p) && /\d/.test(p) ? '' : t('Password: at least 8 characters with letters and numbers.'); }
+  function pwField(id, label, ac, extra) {
+    return `<div class="fld"><label for="${id}">${label}</label><div class="pw-wrap"><input id="${id}" type="password" autocomplete="${ac}" autocapitalize="none" spellcheck="false" ${extra || ''} required>
+      <button type="button" class="pw-eye" data-act="togglePw" data-for="${id}" aria-label="${t('Show password')}">${ic('eye')}</button></div></div>`;
+  }
+  function userField(id, label, val, ac) {
+    return `<div class="fld"><label for="${id}">${label}</label><input id="${id}" type="text" value="${esc(val || '')}" autocomplete="${ac || 'username'}" autocapitalize="none" spellcheck="false" required></div>`;
+  }
+
+  /* ================================================================ online account (only when submitting / restoring) */
+  async function accountDialog(mode) {
     if (!S.online && !API.isGas()) return toast('You need internet for this.', 'err');
+    const localUser = await Store.username();
     if (mode === 'register') {
-      modal(`<h2>${t('Create account')}</h2><p class="muted">Your online EMBRACE Passport lets you back up, use another device and submit to OLEDIPO.</p>
+      modal(`<h2>${t('Create your online account')}</h2><p class="muted">Needed to send your application to OLEDIPO and to restore your Passport on another device.</p>
+        ${userField('acUser', t('Username'), localUser)}
         <div class="fld"><label for="acMobile">${t('Mobile number')}</label><input id="acMobile" type="tel" inputmode="tel" value="${esc(S.profile.owner.contact || '')}" placeholder="09XXXXXXXXX"></div>
-        <div class="fld"><label for="acPin">Online PIN (4–8 digits)</label><input id="acPin" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
-        <div class="fld"><label for="acPin2">Repeat PIN</label><input id="acPin2" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
-        <p class="muted small">By creating an account, your Passport will be stored on the Provincial Government's secure Google server. It will only be shared with OLEDIPO evaluators after you give consent.</p>
-        <div class="btns"><button class="btn" data-act="doRegister">${t('Create account')}</button></div><p id="acErr" class="err" role="alert"></p>`);
+        ${pwField('acPass', t('Password'), 'new-password')}${pwField('acPass2', t('Repeat password'), 'new-password')}
+        <p class="muted small">${t('Tip: use the same username and password as on this phone.')} Your Passport will be stored on the Provincial Government's secure Google server and shared with OLEDIPO evaluators only after you give consent.</p>
+        <div class="btns"><button class="btn" data-act="doRegister">${t('Create account')}</button><button class="btn ghost" data-act="signIn">${t('I already have an account')}</button></div><p id="acErr" class="err" role="alert"></p>`);
     } else {
-      modal(`<h2>${t('Sign in')}</h2><div class="fld"><label for="acId">Passport ID or mobile number</label><input id="acId" type="text" autocomplete="username"></div>
-        <div class="fld"><label for="acPin">Online PIN</label><input id="acPin" type="password" inputmode="numeric" maxlength="8" autocomplete="current-password"></div>
+      modal(`<h2>${t('Sign in')}</h2>${userField('acId', t('Username, Passport ID or mobile number'), localUser)}${pwField('acPass', t('Password'), 'current-password')}
         <div class="btns"><button class="btn" data-act="doSignIn">${t('Sign in')}</button></div><p id="acErr" class="err" role="alert"></p>`);
     }
   }
   async function doRegister() {
-    const m = $('#acMobile').value, p1 = $('#acPin').value, p2 = $('#acPin2').value;
-    if (p1 !== p2) return ($('#acErr').textContent = 'PINs do not match.');
+    const u = $('#acUser').value, m = $('#acMobile').value, p1 = $('#acPass').value, p2 = $('#acPass2').value;
+    const bad = userError(u) || passError(p1) || (p1 !== p2 ? t('Passwords do not match.') : '');
+    if (bad) return ($('#acErr').textContent = bad);
     try {
-      const r = await API.call({ action: 'register', mobile: m, pin: p1 });
-      S.session = { token: r.token, passportId: r.passportId }; S.profile.passportId = r.passportId; S.profile.meta.serverUpdatedAt = '';
+      const r = await API.call({ action: 'register', username: normUser(u), mobile: m, password: p1 });
+      S.session = { token: r.token, passportId: r.passportId, username: r.username }; S.profile.passportId = r.passportId; S.profile.meta.serverUpdatedAt = '';
       await Store.setSecure('session', S.session); closeModal(); touch(); await persist(); await sync({ toast: true }); route();
-      modal(`<h2>${ic('check')} Account created</h2><p>Your EMBRACE Passport ID is</p><p class="big-id">${esc(r.passportId)}</p><p>Write it down. You can sign in with this ID or your mobile number.</p>`);
+      modal(`<h2>${ic('check')} ${t('Account created')}</h2><p>${t('Username')}: <b>${esc(r.username)}</b></p><p>Passport ID</p><p class="big-id">${esc(r.passportId)}</p><p>${t('Keep your username and password safe. You can also sign in with your Passport ID.')}</p>`);
     } catch (e) { $('#acErr').textContent = e.message; }
   }
   async function doSignIn() {
     try {
-      const r = await API.call({ action: 'login', id: $('#acId').value, pin: $('#acPin').value });
-      S.session = { token: r.token, passportId: r.passportId }; await Store.setSecure('session', S.session);
+      const r = await API.call({ action: 'login', id: $('#acId').value.trim(), password: $('#acPass').value });
+      S.session = { token: r.token, passportId: r.passportId, username: r.username }; await Store.setSecure('session', S.session);
       const localHasData = !!(S.profile.owner.firstName || S.profile.business.name);
       if (r.profile) {
         if (!localHasData || confirm('Load your online Passport on this device? (OK = use online data, Cancel = keep this device\'s data and upload it)')) {
           S.profile = C.normalize(r.profile); S.profile.meta.serverUpdatedAt = r.serverUpdatedAt; S.profile.meta.dirty = false; await Store.saveProfile(S.profile);
         } else { S.profile.passportId = r.passportId; S.profile.meta.serverUpdatedAt = r.serverUpdatedAt; touch(); await persist(); await sync({ force: true }); }
       } else { S.profile.passportId = r.passportId; touch(); await persist(); await sync(); }
-      closeModal(); renderSyncPill(); route(); toast('Signed in as ' + r.passportId, 'ok');
+      closeModal(); renderSyncPill(); route(); toast(t('Signed in as') + ' ' + (r.username || r.passportId), 'ok');
     } catch (e) { $('#acErr').textContent = e.message; }
   }
   async function submitApp() {
     const p = S.profile;
     if (!p.consent.share) return toast('Please give consent first.', 'err');
     if (!API.configured()) return toast('Online submission is not available in this copy. Print your documents and submit them at the LEDIP Center.', 'err');
-    if (!S.session) { toast('Create or sign in to an online account first.', 'err'); return accountDialog('register'); }
+    if (!S.session) { toast('Create your online account first so OLEDIPO can receive your application.', 'err'); return accountDialog('register'); }
     const miss = C.overall(p).missing.length;
     if (miss && !confirm(miss + ' item(s) are still missing. Submit anyway? OLEDIPO may ask you to complete them.')) return;
     try {
@@ -1097,64 +1111,80 @@
       modal(`<h2>${ic('check')} Submitted</h2><p>Your application was sent to OLEDIPO / LEDIP Center. The Secretariat will contact you at <b>${esc(p.owner.contact)}</b> to schedule an interview.</p><p class="muted">Remember: bring 3 signed copies of the Application Form and your original documents.</p>`);
     } catch (e) { toast(e.message, 'err'); }
   }
-  function pinChangeDialog() {
-    modal(`<h2>Change PIN</h2><div class="fld"><label for="pOld">Current PIN</label><input id="pOld" type="password" inputmode="numeric" maxlength="8"></div>
-      <div class="fld"><label for="pNew">New PIN (4–8 digits)</label><input id="pNew" type="password" inputmode="numeric" maxlength="8"></div>
-      ${S.session ? '<label class="toggle"><input type="checkbox" id="pOnline" checked> Also change my online PIN</label>' : ''}
-      <div class="btns"><button class="btn" data-act="doChangePin">Change PIN</button></div><p id="acErr" class="err" role="alert"></p>`);
+  async function pinChangeDialog() {
+    const u = await Store.username();
+    modal(`<h2>${t('Change password')}</h2>${u ? `<p class="muted">${t('Username')}: <b>${esc(u)}</b></p>` : ''}
+      ${pwField('pOld', t('Current password'), 'current-password')}${pwField('pNew', t('New password'), 'new-password')}${pwField('pNew2', t('Repeat new password'), 'new-password')}
+      ${S.session ? `<label class="toggle"><input type="checkbox" id="pOnline" checked> ${t('Also change my online password')}</label>` : ''}
+      <div class="btns"><button class="btn" data-act="doChangePin">${t('Change password')}</button></div><p id="acErr" class="err" role="alert"></p>`);
   }
   async function doChangePin() {
     const o = $('#pOld').value, nw = $('#pNew').value;
-    if (!/^\d{4,8}$/.test(nw)) return ($('#acErr').textContent = 'PIN must be 4 to 8 digits.');
+    const bad = passError(nw) || (nw !== $('#pNew2').value ? t('Passwords do not match.') : '');
+    if (bad) return ($('#acErr').textContent = bad);
     try {
       await Store.unlock(o);
-      if (S.session && $('#pOnline') && $('#pOnline').checked) await API.call({ action: 'changePin', token: S.session.token, oldPin: o, newPin: nw });
-      await Store.changePin(nw); closeModal(); toast('PIN changed.', 'ok');
-    } catch (e) { $('#acErr').textContent = e.message === 'Wrong PIN' ? 'Current PIN is wrong.' : e.message; }
+      if (S.session && $('#pOnline') && $('#pOnline').checked) await API.call({ action: 'changePassword', token: S.session.token, oldPassword: o, newPassword: nw });
+      await Store.changePin(nw); closeModal(); toast(t('Password changed.'), 'ok');
+    } catch (e) { $('#acErr').textContent = e.message === 'Wrong password' ? t('Current password is wrong.') : e.message; }
   }
-
-  function speak(text) {
-    try {
-      speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = S.settings.lang === 'en' ? 'en-PH' : 'fil-PH'; u.rate = 0.92;
-      speechSynthesis.speak(u);
-    } catch (e) { /* not supported */ }
+  /* devices that still use the old PIN: choose a username + password once */
+  function upgradeDialog() {
+    modal(`<h2>${ic('lock')} ${t('New: username and password')}</h2><p>${t('NegosyoPlan now uses a username and password instead of a PIN. Please create them once. Your saved work stays.')}</p>
+      ${userField('upUser', t('Username'), '', 'username')}${pwField('upPass', t('Password'), 'new-password')}${pwField('upPass2', t('Repeat password'), 'new-password')}
+      <div class="btns"><button class="btn big" data-act="doUpgrade">${t('Save')}</button></div><p id="acErr" class="err" role="alert"></p>`);
+  }
+  async function doUpgrade() {
+    const u = $('#upUser').value, p1 = $('#upPass').value;
+    const bad = userError(u) || passError(p1) || (p1 !== $('#upPass2').value ? t('Passwords do not match.') : '');
+    if (bad) return ($('#acErr').textContent = bad);
+    await Store.changePin(p1, normUser(u)); closeModal(); toast(t('Username and password saved.'), 'ok');
   }
 
   /* ================================================================ lock / welcome */
-  function lockScreen() {
-    document.body.innerHTML = `<header class="top gate-top"><span class="brand">${LOGO()}<span><b>EMBRACE Portal</b><small>Expanded Micro Business Recovery Assistance during Crisis and Emergency</small></span></span></header><div class="gate"><div class="gate-card"><h1>EMBRACE Portal</h1><p class="muted">Expanded Micro Business Recovery Assistance during Crisis and Emergency</p>
-      <form id="unlockForm"><label for="pin">${t('Enter your PIN')}</label><input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="current-password" class="pin-in" required>
-      <button class="btn big full" type="submit">${ic('lock')} ${t('Unlock')}</button><p id="pinErr" class="err" role="alert"></p></form>
-      <details class="small"><summary>${t('Forgot PIN?')}</summary><p>For your security, your data on this device can only be opened with your PIN. If you have an online account, you can erase this device and sign in again to restore your Passport.</p>
+  async function lockScreen() {
+    const u = await Store.username();
+    document.body.innerHTML = `<header class="top gate-top"><span class="brand">${LOGO()}<span><b>NegosyoPlan</b><small>Business Plan &amp; Financial Statement Builder · MSME Enterprise Passport</small></span></span></header><div class="gate"><div class="gate-card"><h1>NegosyoPlan</h1><p class="muted">Business Plan &amp; Financial Statement Builder · MSME Enterprise Passport</p>
+      <form id="unlockForm" class="login-form"><h2>${t('Log in')}</h2>
+      ${u ? userField('lgUser', t('Username'), u) : ''}
+      ${pwField('lgPass', u ? t('Password') : t('Your PIN (last time only)'), 'current-password', u ? '' : 'inputmode="numeric"')}
+      <button class="btn big full" type="submit">${ic('lock')} ${t('Log in')}</button><p id="pinErr" class="err" role="alert"></p></form>
+      <details class="small"><summary>${t('Forgot password?')}</summary><p>For your security, your data on this device can only be opened with your password. If you have an online account, you can erase this device and sign in again to restore your Passport.</p>
       <button class="btn sm ghost danger" id="forgotWipe">Erase this device and start again</button></details>
       <p class="small"><a href="#admin" id="staffLink">${t('OLEDIPO Staff')}</a></p></div></div><div id="toasts"></div>`;
-    $('#pin').focus();
+    ($('#lgUser') && !$('#lgUser').value ? $('#lgUser') : $('#lgPass')).focus();
     $('#unlockForm').onsubmit = async (e) => {
       e.preventDefault();
-      try { await Store.unlock($('#pin').value); await start(); } catch (err) { $('#pinErr').textContent = 'Wrong PIN. Please try again.'; $('#pin').value = ''; $('#pin').focus(); }
+      const pass = $('#lgPass').value;
+      try { await Store.unlock(pass, u ? $('#lgUser').value : null); if (!u) S._needUpgrade = true; await start(); }
+      catch (err) { $('#pinErr').textContent = t('Wrong username or password. Please try again.'); $('#lgPass').value = ''; $('#lgPass').focus(); }
     };
-    $('#forgotWipe').onclick = async () => { if (confirm('Erase all EMBRACE Portal data on this device?')) { await Store.wipe(); location.reload(); } };
+    $('#forgotWipe').onclick = async () => { if (confirm('Erase all NegosyoPlan data on this device?')) { await Store.wipe(); location.reload(); } };
     $('#staffLink').onclick = () => { setTimeout(route, 0); };
   }
   function welcome() {
-    document.body.innerHTML = `<header class="top gate-top"><span class="brand">${LOGO()}<span><b>EMBRACE Portal</b><small>Expanded Micro Business Recovery Assistance during Crisis and Emergency</small></span></span></header><div class="gate"><div class="gate-card wide"><h1>EMBRACE Portal</h1><p class="lead">Expanded Micro Business Recovery Assistance during Crisis and Emergency</p>
+    const keep = {}; ['nuUser'].forEach((k) => { const e = $('#' + k); if (e) keep[k] = e.value; });
+    document.body.innerHTML = `<header class="top gate-top"><span class="brand">${LOGO()}<span><b>NegosyoPlan</b><small>Business Plan &amp; Financial Statement Builder · MSME Enterprise Passport</small></span></span></header><div class="gate"><div class="gate-card wide"><div class="pin-logo${S._pinLogoShown ? ' still' : ''}" aria-hidden="true"><span class="pl-ring"></span><span class="pl-glow"></span>
+      <span class="pl-img"><img src="assets/logo-circle.png" alt="" width="150" height="150" draggable="false"><span class="pl-glare"></span></span>
+      <i class="pl-spark k1"></i><i class="pl-spark k2"></i><i class="pl-spark k3"></i><i class="pl-spark k4"></i></div><h1 class="pl-title">NegosyoPlan</h1><p class="lead">Business Plan &amp; Financial Statement Builder · MSME Enterprise Passport</p>
       <p>Your guide to preparing a <b>business plan</b>, <b>financial statements</b> and <b>EMBRACE loan requirements</b> — on your phone or computer, even without internet.</p>
       <h2>${t('Choose your language')}</h2><div class="chips center">${Object.entries(I.LANGS).map(([k, v]) => `<label class="chip big"><input type="radio" name="wl" value="${k}" ${S.settings.lang === k ? 'checked' : ''}><span>${v}</span></label>`).join('')}</div>
-      <form id="pinForm"><h2>${t('Create a PIN')}</h2><p class="muted small">4 to 8 numbers. It protects your information on this device. Do not share it.</p>
-      <div class="row"><div class="fld"><label for="p1">PIN</label><input id="p1" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" class="pin-in" autocomplete="new-password" required></div>
-      <div class="fld"><label for="p2">Repeat PIN</label><input id="p2" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" class="pin-in" autocomplete="new-password" required></div></div>
+      <form id="pinForm" class="login-form"><h2>${t('Create your username and password')}</h2><p class="muted small">${t('They protect your information on this device. Do not share your password.')}</p>
+      ${userField('nuUser', t('Username'), keep.nuUser || '', 'username')}
+      <p class="muted small field-hint">${t('4 to 30 letters or numbers, no spaces. Example: liza.delapena')}</p>
+      <div class="row">${pwField('p1', t('Password'), 'new-password')}${pwField('p2', t('Repeat password'), 'new-password')}</div>
+      <p class="muted small field-hint">${t('At least 8 characters with letters and numbers.')}</p>
       <button class="btn big full" type="submit">${t('Get started')} ${ic('arrowR')}</button><p id="pinErr" class="err" role="alert"></p></form>
-      <p class="muted small">Your information stays on this device unless you choose to link an online account and give consent to share it with OLEDIPO.</p>
+      <p class="muted small">Your information stays on this device unless you choose to submit your application and give consent to share it with OLEDIPO.</p>
       <p class="small"><a href="#admin" id="staffLink">${t('OLEDIPO Staff')}</a></p></div></div><div id="toasts"></div>`;
+    S._pinLogoShown = true;
     $$('input[name="wl"]').forEach((r) => (r.onchange = () => { S.settings.lang = r.value; Store.setMeta('settings', S.settings); applySettings(); welcome(); }));
     $('#pinForm').onsubmit = async (e) => {
       e.preventDefault();
-      const a = $('#p1').value, b = $('#p2').value;
-      if (!/^\d{4,8}$/.test(a)) return ($('#pinErr').textContent = 'PIN must be 4 to 8 numbers.');
-      if (a !== b) return ($('#pinErr').textContent = 'PINs do not match.');
-      await Store.createPin(a);
+      const u = $('#nuUser').value, a = $('#p1').value, b = $('#p2').value;
+      const bad = userError(u) || passError(a) || (a !== b ? t('Passwords do not match.') : '');
+      if (bad) return ($('#pinErr').textContent = bad);
+      await Store.createPin(a, normUser(u));
       S.profile = C.newProfile(); S.profile.lang = S.settings.lang;
       await Store.saveProfile(S.profile); await start();
     };
@@ -1230,6 +1260,7 @@
     applySettings();
     if (!location.hash || location.hash === '#') location.hash = '#home'; else route();
     if (S.session) sync();
+    if (G.GrowVoice) G.GrowVoice.init().then(() => { if (/^#(passport|plan|finance|settings)/.test(location.hash)) route(); });
     if (G.GrowLoans) G.GrowLoans.load(false).then(() => { if (/^#(home)?$/.test(location.hash || '#home') && G.GrowLoans.hasLoans()) route(); });
   }
   let bound = false;
@@ -1274,13 +1305,13 @@
     if (!G.GrowAdmin) return;
     if (S.shellMode !== 'admin' || !$('#main')) {
       S.shellMode = 'admin';
-      document.body.innerHTML = `<header class="top"><a class="brand" href="#home">${LOGO()}<span><b>EMBRACE Portal</b><small>Expanded Micro Business Recovery Assistance during Crisis and Emergency · OLEDIPO Staff</small></span></a>
+      document.body.innerHTML = `<header class="top"><a class="brand" href="#home">${LOGO()}<span><b>NegosyoPlan</b><small>OLEDIPO Staff Workspace</small></span></a>
         <div class="top-r"><a class="btn sm ghost" href="#home">${ic('arrowL')} Applicant app</a></div></header><main id="main" class="admin-main" tabindex="-1"></main><div id="toasts" aria-live="polite"></div>`;
     }
     G.GrowAdmin.render();
   }
 
 
-  G.GrowApp = { S, ic, esc, toast, modal, closeModal, openDoc, openDocObj, download, field, refreshCalcs, renderAdmin, getPath, touch, persist, route, sync };
+  G.GrowApp = { S, ic, esc, setPath, TPL, toast, modal, closeModal, openDoc, openDocObj, download, field, refreshCalcs, renderAdmin, getPath, touch, persist, route, sync };
   document.addEventListener('DOMContentLoaded', boot);
 })(window);

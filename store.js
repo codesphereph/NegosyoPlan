@@ -1,4 +1,4 @@
-/* EMBRACE Portal — local storage (IndexedDB, AES-GCM encrypted with the user's PIN) + server API + sync */
+/* NegosyoPlan — local storage (IndexedDB, AES-GCM encrypted with a key derived from the user's password) + server API + sync */
 (function (G) {
   'use strict';
 
@@ -95,35 +95,39 @@
         return { hasPin: !!r[0], hasData: !!r[1], cryptoAvailable: !!subtle };
       });
     },
-    createPin: function (pin) {
-      if (!subtle) { return idbSet('lock', { none: true }); }
+    /** create the device login: username (kept in clear) + password (only its derived key is used) */
+    createPin: function (pin, username) {
+      username = String(username || '').trim().toLowerCase();
+      if (!subtle) { return idbSet('lock', { none: true, username: username }); }
       var salt = G.crypto.getRandomValues(new Uint8Array(16));
       return deriveKey(pin, salt).then(function (k) {
         KEY = k;
         return encrypt({ check: 'grow' });
-      }).then(function (check) { return idbSet('lock', { salt: b64(salt), check: check }); });
+      }).then(function (check) { return idbSet('lock', { salt: b64(salt), check: check, username: username }); });
     },
-    unlock: function (pin) {
+    username: function () { return idbGet('lock').then(function (l) { return (l && l.username) || ''; }); },
+    unlock: function (pin, username) {
       return idbGet('lock').then(function (lock) {
-        if (!lock) throw new Error('No PIN set');
+        if (!lock) throw new Error('No password set');
+        if (username != null && lock.username && String(username).trim().toLowerCase() !== lock.username) throw new Error('Wrong username');
         if (lock.none) return true;
         return deriveKey(pin, unb64(lock.salt)).then(function (k) {
           KEY = k;
           return decrypt(lock.check).then(function (c) {
             if (!c || c.check !== 'grow') throw new Error('bad');
             return true;
-          }).catch(function () { KEY = null; throw new Error('Wrong PIN'); });
+          }).catch(function () { KEY = null; throw new Error('Wrong password'); });
         });
       });
     },
-    changePin: function (newPin) {
-      // re-encrypt everything with a new key
-      var self = this;
-      return Promise.all([self.getProfile(), self.listFileIds(), self.getSecure('session')]).then(function (r) {
-        var profile = r[0], ids = r[1], session = r[2];
+    /** new password (and optionally a new username): re-encrypt everything with the new key */
+    changePin: function (newPin, newUsername) {
+      var self = this, SEC = ['session', 'loans', 'loanKeys'];
+      return Promise.all([self.getProfile(), self.listFileIds(), self.username(), Promise.all(SEC.map(function (k) { return self.getSecure(k).catch(function () { return null; }); }))]).then(function (r) {
+        var profile = r[0], ids = r[1], user = newUsername || r[2], secs = r[3];
         return Promise.all(ids.map(function (id) { return self.getFile(id).then(function (f) { return [id, f]; }); })).then(function (files) {
-          return self.createPin(newPin).then(function () {
-            return Promise.all([profile ? self.saveProfile(profile) : null, self.setSecure('session', session)]);
+          return self.createPin(newPin, user).then(function () {
+            return Promise.all([profile ? self.saveProfile(profile) : null].concat(SEC.map(function (k, i) { return self.setSecure(k, secs[i]); })));
           }).then(function () {
             return Promise.all(files.map(function (p) { return p[1] ? self.putFile(p[0], p[1]) : null; }));
           });

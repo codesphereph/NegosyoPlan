@@ -1,4 +1,4 @@
-/* EMBRACE Portal — printable / downloadable documents, generated offline from the saved Passport.
+/* NegosyoPlan — printable / downloadable documents, generated offline from the saved Passport.
    Layouts follow the official EMBRACE forms: Annex A (Application Form), Annex C (Barangay Certificates),
    Annex D (Business Plan template), Sworn Affidavit, and the OLEDIPO Financial Statement template. */
 (function (G) {
@@ -18,9 +18,9 @@
       '<h1>' + esc(title) + '</h1>' + (sub ? '<div class="sub">' + sub + '</div>' : '') + '</div>';
   }
   function footer(p) {
-    return '<div class="doc-foot">Prepared with the EMBRACE Portal (OLEDIPO, Iloilo Province) on ' + today() +
+    return '<div class="doc-foot">Prepared with NegosyoPlan (OLEDIPO, Iloilo Province) on ' + today() +
       (p.passportId ? ' · Passport ID ' + esc(p.passportId) : '') +
-      '. ' + (p.meta && p.meta.aiAssisted ? 'Narrative drafted with AI assistance and reviewed by the applicant. ' : '') + 'Figures are self-reported by the applicant unless marked "Verified by OLEDIPO". This document does not guarantee loan approval and does not replace official evaluation by the EMBRACE Technical Working Group. Professional review of financial statements is recommended.</div>';
+      '. ' + 'Figures are self-reported by the applicant unless marked "Verified by OLEDIPO". This document does not guarantee loan approval and does not replace official evaluation by the EMBRACE Technical Working Group. Professional review of financial statements is recommended.</div>';
   }
   function sign(label, name) {
     return '<div class="sign"><div class="line">' + esc(name || '') + '</div><div>' + esc(label) + '</div></div>';
@@ -308,7 +308,7 @@
     var needs = p.needs.concat(p.needsOther ? [p.needsOther] : []);
     var sug = C.suggestedNeeds(p).filter(function (s) { return needs.indexOf(s) < 0; });
     h += '<h2>Development Needs (identified by the owner)</h2><ul>' + (needs.length ? needs.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') : '<li><em>None recorded.</em></li>') + '</ul>';
-    if (sug.length) h += '<h2>Suggested by the EMBRACE Portal (based on gaps in the passport)</h2><ul>' + sug.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+    if (sug.length) h += '<h2>Suggested by NegosyoPlan (based on gaps in the passport)</h2><ul>' + sug.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
     return { title: 'Training Summary', html: h + footer(p) };
   }
 
@@ -325,7 +325,7 @@
       '<div class="signs">' + sign('Affiant', C.fullName(o).toUpperCase()) + '</div>' +
       '<p class="just ind">SUBSCRIBED AND SWORN before me this ' + v('', 16) + ' who exhibited to me his/her competent proof of identity consisting of his/her ID Card ' + v('', 14) + '.</p>' +
       '<p>Doc No. ____<br>Page No. ____<br>Book No. ____<br>Series of ' + new Date().getFullYear() + '</p>';
-    return { title: 'Sworn Affidavit', html: h + '<p class="note">To be notarized. Prefilled by the EMBRACE Portal.</p>' };
+    return { title: 'Sworn Affidavit', html: h + '<p class="note">To be notarized. Prefilled by NegosyoPlan.</p>' };
   }
 
   function annexC(p) {
@@ -344,7 +344,7 @@
       '<li>That the employees referred above are permanent residents of the Province of Iloilo;</li></ol>' +
       '<p class="ind">Signed this ' + v('', 3) + ' day of ' + v('', 8) + ' 20' + v('', 2) + ' at ' + v('', 12) + ', Iloilo, Philippines.</p>' +
       '<div class="signs">' + sign('Signature over Printed Name of Brgy. Captain', '') + '</div>';
-    return { title: 'Annex C – Barangay Certificates', html: h + '<p class="note">Prefilled by the EMBRACE Portal for the Barangay Captain\'s review and signature. The Barangay Captain completes and signs this certificate.</p>' };
+    return { title: 'Annex C – Barangay Certificates', html: h + '<p class="note">Prefilled by NegosyoPlan for the Barangay Captain\'s review and signature. The Barangay Captain completes and signs this certificate.</p>' };
   }
 
   function checklistDoc(p) {

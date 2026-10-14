@@ -1,4 +1,4 @@
-/* EMBRACE Portal — one-button install.
+/* NegosyoPlan — one-button install.
    - Android / Chrome / Edge / Samsung Internet (phone & desktop): the "Install" button opens the browser's own install
      dialog immediately (beforeinstallprompt) — one tap on Install, one tap to confirm, and the app is on the home screen.
    - iPhone / iPad (Safari): Apple does not allow websites to install themselves, so the button opens a 2-step guide.
@@ -21,14 +21,14 @@
   G.addEventListener('appinstalled', () => {
     deferred = null; store.set('installed', true); hide(true);
     document.querySelectorAll('.install-banner.ib-app').forEach((b) => b.remove());
-    toast('✓ EMBRACE Portal installed. Open it from your home screen.');
+    toast('✓ NegosyoPlan installed. Open it from your home screen.');
   });
 
   /* offline download on first opening */
   if ('serviceWorker' in navigator && /^https:|^http:\/\/localhost/.test(location.href)) {
     G.addEventListener('load', () => {
       navigator.serviceWorker.register('sw.js').then(() => navigator.serviceWorker.ready).then(() => {
-        if (!store.get('offlineReady', false)) { store.set('offlineReady', true); toast('✓ Downloaded — EMBRACE Portal now works even without internet.'); }
+        if (!store.get('offlineReady', false)) { store.set('offlineReady', true); toast('✓ Downloaded — NegosyoPlan now works even without internet.'); }
       }).catch((err) => console.warn('SW failed', err));
     });
   }
@@ -65,7 +65,7 @@
     const plus = '<svg viewBox="0 0 24 24" class="ig-ic"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8v8M8 12h8"/></svg>';
     const dots = '<svg viewBox="0 0 24 24" class="ig-ic"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>';
     g.innerHTML = `<div class="ig-sheet" role="dialog" aria-modal="true" aria-labelledby="igTitle"><button class="ib-x ig-x" aria-label="Close">✕</button>
-      <div class="ig-head">${LOGO}<div><b id="igTitle">Install EMBRACE Portal</b><small>Takes 2 taps · works offline after</small></div></div>
+      <div class="ig-head">${LOGO}<div><b id="igTitle">Install NegosyoPlan</b><small>Takes 2 taps · works offline after</small></div></div>
       ${isIOS ? `<ol class="ig-steps"><li><span>${share}</span>Tap <b>Share</b> at the bottom of Safari</li><li><span>${plus}</span>Tap <b>Add to Home Screen</b>, then <b>Add</b></li></ol>`
         : `<ol class="ig-steps"><li><span>${dots}</span>Open the browser menu <b>⋮</b></li><li><span>${plus}</span>Tap <b>Install app</b> or <b>Add to Home screen</b></li></ol>
            <p class="ig-note">Tip: for one-tap install, open this page in <b>Chrome</b>, <b>Edge</b> or <b>Samsung Internet</b>.</p>`}
@@ -82,7 +82,7 @@
     let b = document.getElementById('installBanner');
     if (!b) {
       b = document.createElement('div'); b.id = 'installBanner'; b.className = 'install-float'; b.setAttribute('role', 'dialog'); b.setAttribute('aria-labelledby', 'installTitle');
-      b.innerHTML = `${LOGO}<div class="install-text"><strong id="installTitle">EMBRACE Portal app</strong><span>Install on this device · works offline</span></div>
+      b.innerHTML = `${LOGO}<div class="install-text"><strong id="installTitle">NegosyoPlan app</strong><span>Install on this device · works offline</span></div>
         <div class="install-actions"><button type="button" class="ib-btn ib-go" id="installBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Install</button>
         <button type="button" class="ib-x" id="installClose" aria-label="Not now">✕</button></div>`;
       document.body.appendChild(b);
@@ -104,7 +104,7 @@
     if (standalone() || store.get('installed', false)) return '';
     if (where === 'home' && store.get('installDismissed', false)) return '';
     return `<div class="install-banner ib-app" role="region" aria-label="Install app"><span class="ib-logo"><img src="icons/icon-96.png" alt=""></span>
-      <p><b>EMBRACE Portal app</b><br><small>Install on this device · works offline</small></p>
+      <p><b>NegosyoPlan app</b><br><small>Install on this device · works offline</small></p>
       <button class="ib-btn ib-go" data-ib="install"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Install</button><button class="ib-x" data-ib="close" aria-label="Close">✕</button></div>`;
   }
   function mount(container, where) {

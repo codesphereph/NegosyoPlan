@@ -1,8 +1,8 @@
-/* EMBRACE Portal service worker: offline app shell (same pattern as SMILE).
+/* NegosyoPlan service worker: offline app shell (same pattern as SMILE).
    Bump VERSION whenever you change files so users get the update. */
-const VERSION = 'embrace-v3.0.0';
+const VERSION = 'negosyoplan-v4.4.1';
 const SHELL = [
-  './', './index.html', './styles.css', './config.js', './i18n.js', './calc.js', './store.js', './docs.js', './install.js', './landing.js', './app.js', './ai.js', './loans.js', './admin.js', './manifest.webmanifest',
+  './', './index.html', './styles.css', './config.js', './i18n.js', './calc.js', './store.js', './docs.js', './install.js', './landing.js', './app.js', './voice.js', './loans.js', './market.js', './admin.js', './manifest.webmanifest',
   './assets/hero.jpg', './assets/hero-sm.jpg', './assets/hero-blur.jpg', './assets/logo-circle.png',
   './icons/icon-32.png', './icons/icon-96.png', './icons/icon-192.png', './icons/icon-512.png', './icons/maskable-512.png', './icons/apple-touch-icon.png'
 ];
